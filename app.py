@@ -14,8 +14,7 @@ last_request = {}
 load_dotenv()
 import os
 
-port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
+
 
 ABUSEIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY")
 VT_API_KEY = os.getenv("VT_API_KEY")
@@ -138,4 +137,5 @@ def check_ip():
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
