@@ -34,14 +34,24 @@
             border: none;
         }
 
-        button {
-            padding: 10px 20px;
-            background: #22c55e;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #22c55e;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
 
+button:hover {
+    background: #16a34a;   /* 🔥 visible hover */
+}
+
+button:active {
+    transform: scale(0.96);
+    background: #15803d;
+}
         .error {
             color: red;
             margin-top: 10px;
@@ -163,9 +173,10 @@
             <input type="text" id="ipInput" placeholder="Enter IP" 
                 style="flex:1; padding:10px; border-radius:6px; border:none;">
 
-            <button onclick="checkIP()" 
-                    style="padding:10px 16px; background:#00c853; border:none; border-radius:6px; cursor:pointer;">
-                Check
+            <!-- <button onclick="checkIP()" 
+                    style="padding:10px 16px; background:#00c853; border:none; border-radius:6px; cursor:pointer;"> -->
+            <button onclick="checkIP()">Check</button>
+                <!-- Check -->
             </button>
 
         </div>
