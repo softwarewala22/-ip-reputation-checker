@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IP Reputation Checker</title>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: Arial;
+            margin: 0;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: #020617;
+        }
+
+        .container {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            margin: 60px auto;
+            text-align: center;
+        }
+
+        input {
+            padding: 10px;
+            width: 80%;
+            border-radius: 5px;
+            border: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #22c55e;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .result {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .card {
+            background: #020617;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-break: break-all;
+        }
+
+        .label {
+            color: #38bdf8;
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 5px;
+        }
+
+        .safe { background: green; }
+        .risk { background: red; }
+
+        .malicious { color: red; font-weight: bold; }
+        .suspicious { color: orange; font-weight: bold; }
+        .safe-text { color: lightgreen; font-weight: bold; }
+
+        .vt-container {
+             background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            margin: 20px 0 0 20px;
+            text-align: left;
+        }
+
+       
+        .footer {
+    margin-top: 40px;
+    padding: 15px;
+    background: #020617;
+    color: #94a3b8;
+    font-size: 14px;
+    text-align: center;
+    border-top: 1px solid #1e293b;}
+
+    /* 🔥 TOGGLE SWITCH FIX */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  vertical-align: middle;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  background-color: #475569;
+  border-radius: 34px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: 0.4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.4s;
+}
+
+.switch input:checked + .slider {
+  background-color: #22c55e;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+}
+    </style>
+</head>
+
+<body>
+
+<div class="topbar">
+    <div>🔐 IP Tool</div>
+    <div>Your IP: <span id="myIP">Loading...</span></div>
+</div>
+
+<div class="container">
+    <h2>🔍 IP Reputation Checker</h2>
+    
+    <!-- 🔥 FORM FIXED -->
+    <form onsubmit="return false;">
+            
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            
+            <input type="text" id="ipInput" placeholder="Enter IP" 
+                style="flex:1; padding:10px; border-radius:6px; border:none;">
+
+            <button onclick="checkIP()" 
+                    style="padding:10px 16px; background:#00c853; border:none; border-radius:6px; cursor:pointer;">
+                Check
+            </button>
+
+        </div>
+
+        <!-- 🔥 TOGGLE SWITCH -->
+        <div style="margin-bottom:15px; display:flex; justify-content:center; align-items:center; gap:10px;">
+            <label class="switch">
+                <input type="checkbox" id="vpnCheck">
+                <span class="slider"></span>
+            </label>
+            <span>VPN / Proxy</span>
+        </div>
+
+        <!-- 🔥 INTRO TEXT -->
+<div id="introText" style="margin-top:10px; color:#94a3b8; font-size:13px;">
+    Analyze IP reputation, detect VPN / Proxy usage, and identify malicious activity using real-time threat intelligence.
+</div>
+
+    </form>
+
+    <div class="error" id="errorMsg"></div>
+
+    <div class="result" id="resultBox" style="display:none;">
+        <div class="card"><span class="label">IP:</span> <span id="ip"></span></div>
+        <div class="card"><span class="label">Risk Score:</span> <span id="score"></span></div>
+        <div class="card"><span class="label">Status:</span> <span id="status" class="badge"></span></div>
+        <div class="card"><span class="label">ISP:</span> <span id="isp"></span></div>
+        <div class="card"><span class="label">Hostname:</span> <span id="hostname"></span></div>
+        <div class="card"><span class="label">Usage:</span> <span id="usage"></span></div>
+        <div class="card"><span class="label">Country:</span> <span id="country"></span></div>
+        <div class="card"><span class="label">City:</span> <span id="city"></span></div>
+        <div class="card"><span class="label">VPN:</span> <span id="vpn"></span></div>
+        <div class="card"><span class="label">Proxy:</span> <span id="proxy"></span></div>
+        <div class="card"><span class="label">TOR:</span> <span id="tor"></span></div>
+        <div class="card"><span class="label">Whitelisted:</span> <span id="whitelist"></span></div>
+    </div>
+</div>
+
+<!-- VT BLOCK -->
+<div id="vtBox" style="display:none;" class="vt-container">
+
+    <h3>VirusTotal</h3>
+
+    <div class="card"><span class="label">IP:</span> <span id="vt_ip"></span></div>
+    <div class="card"><span class="label">Score:</span> <span id="vt_score"></span></div>
+    <div class="card"><span class="label">Status:</span> <span id="vt_status"></span></div>
+
+    <div class="card">
+        <span class="label">Flagged By:</span>
+        <ul id="vt_flagged"></ul>
+    </div>
+
+</div>
+
+<!-- History BLOCK -->
+<div id="historyBox" class="vt-container" style="margin-top:20px;">
+    <h3>Recent Searches</h3>
+    <ul id="historyList"></ul>
+</div>
+
+
+<script>
+
+    // ENTER KEY FIX
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("ipInput").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            checkIP();
+        }
+    });
+});
+
+// 🔹 Get user IP
+fetch("https://api.ipify.org?format=json")
+.then(res => res.json())
+.then(data => {
+    document.getElementById("myIP").innerText = data.ip;
+});
+
+// 🔹 Validation
+function isValidIP(ip) {
+    ip = ip.trim();
+
+    const ipv4 = ip.split(".");
+    if (ipv4.length === 4) {
+        return ipv4.every(p => /^\d+$/.test(p) && p >= 0 && p <= 255);
+    }
+
+    if (ip.includes(":")) {
+        if ((ip.match(/::/g) || []).length > 1) return false;
+        let parts = ip.split(":").filter(p => p !== "");
+        return parts.length <= 8 && parts.every(p => /^[0-9a-fA-F]{1,4}$/.test(p));
+    }
+
+    return false;
+}
+
+// ⭐ STAR FUNCTION
+function getStars(count) {
+    let stars = "";
+    for (let i = 0; i < count; i++) {
+        stars += "⭐";
+    }
+    return stars;
+}
+
+// 🔥 MAIN FUNCTION
+async function checkIP() {
+
+    console.log("🔥 Triggered");
+    // 🔥 Hide intro text when search starts
+    document.getElementById("introText").style.display = "none";
+
+    let ip = document.getElementById("ipInput").value.trim();
+    let errorBox = document.getElementById("errorMsg");
+
+    errorBox.innerText = "";
+    document.getElementById("resultBox").style.display = "none";
+    document.getElementById("vtBox").style.display = "none";
+
+    if (!ip) {
+        errorBox.innerText = "⚠️ Enter IP";
+        return;
+    }
+
+    if (!isValidIP(ip)) {
+        errorBox.innerText = "❌ Invalid IP format";
+        return;
+    }
+
+    try {
+        let checkVpn = document.getElementById("vpnCheck").checked;
+
+        let res = await fetch("/check_ip", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ 
+                ip: ip,
+                check_vpn: checkVpn
+            })
+        });
+
+        let data;
+
+        try {
+            data = await res.json();
+        } catch {
+            errorBox.innerText = "Invalid server response ❌";
+            return;
+        }
+
+        if (!res.ok) {
+            errorBox.innerText = data.error || "Request failed";
+            return;
+        }
+
+        // ✅ SHOW RESULT
+        document.getElementById("resultBox").style.display = "block";
+
+        let statusText = (data.risk_score < 20) ? "SAFE" : "RISKY";
+        addToHistory(ip, statusText);
+
+        document.getElementById("ip").innerText = data.ip;
+        document.getElementById("score").innerText = data.risk_score;
+        document.getElementById("country").innerText = data.country;
+        document.getElementById("city").innerText = data.city;
+        document.getElementById("isp").innerText = data.isp;
+
+        document.getElementById("hostname").innerText =
+            (data.hostnames && data.hostnames.length > 0)
+            ? data.hostnames.join(", ")
+            : "No Hostname";
+
+        document.getElementById("usage").innerText = data.usage || "N/A";
+
+        // 🔥 VPN DATA
+        let vpnData = data.vpn_data || {};
+
+        console.log("VPN DATA:", vpnData);
+
+        let vpnStars = getStars(vpnData.vpn_score || 0);
+        let proxyStars = getStars(vpnData.proxy_score || 0);
+        let torStars = getStars(vpnData.tor_score || 0);
+
+        // ✅ CLEAN OUTPUT FIX
+        document.getElementById("vpn").innerText =
+            vpnData.vpn ? "Yes " + vpnStars : "No";
+
+        document.getElementById("proxy").innerText =
+            vpnData.proxy ? "Yes " + proxyStars : "No";
+
+        // 🔥 TOR (combine both sources)
+        let torFinal = data.is_tor || vpnData.tor;
+
+        document.getElementById("tor").innerText =
+            torFinal ? "Yes " + torStars : "No";
+
+        // Whitelist
+        document.getElementById("whitelist").innerText =
+            data.is_whitelisted ? "Yes" : "No";
+
+        // Status badge
+        let status = document.getElementById("status");
+
+        if (data.risk_score < 20) {
+            status.innerText = "SAFE";
+            status.className = "badge safe";
+        } else {
+            status.innerText = "RISKY";
+            status.className = "badge risk";
+        }
+
+        
+        // ✅ VT BLOCK
+        if (data.vt) {
+
+            document.getElementById("vtBox").style.display = "block";
+
+            document.getElementById("vt_ip").innerText = data.ip;
+            document.getElementById("vt_score").innerText =
+                `${data.vt.flagged_total}/${data.vt.total}`;
+
+            let vtStatus = document.getElementById("vt_status");
+
+            if (data.vt.flagged_total === 0) {
+                vtStatus.innerText = "SAFE";
+                vtStatus.className = "safe-text";
+            } else if (data.vt.flagged_total < 3) {
+                vtStatus.innerText = "SUSPICIOUS";
+                vtStatus.className = "suspicious";
+            } else {
+                vtStatus.innerText = "MALICIOUS";
+                vtStatus.className = "malicious";
+            }
+
+            let list = document.getElementById("vt_flagged");
+            list.innerHTML = "";
+
+            if (data.vt.vendors && data.vt.vendors.length > 0) {
+                data.vt.vendors.forEach(v => {
+                    let li = document.createElement("li");
+                    li.innerText = v;
+                    list.appendChild(li);
+                });
+            } else {
+                list.innerHTML = "<li>None</li>";
+            }
+        }
+
+    } catch (err) {
+        console.error("🔥 ERROR:", err);
+        errorBox.innerText = "Server Error";
+    }
+}
+
+// 🔹 HISTORY
+let history = [];
+
+function addToHistory(ip, status) {
+
+    let entry = `${ip} (${status})`;
+
+    if (history.includes(entry)) return;
+
+    history.unshift(entry);
+
+    if (history.length > 5) {
+        history.pop();
+    }
+
+    let list = document.getElementById("historyList");
+    list.innerHTML = "";
+
+    history.forEach(item => {
+        let li = document.createElement("li");
+        li.innerText = item;
+        list.appendChild(li);
+    });
+}
+
+// 🔥 Show intro text on page load
+window.onload = function () {
+    const intro = document.getElementById("introText");
+    if (intro) {
+        intro.style.display = "block";
+    }
+};
+document.getElementById("ipInput").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        document.getElementById("introText").style.display = "none";
+    }
+});
+
+</script>
+
+
+<footer class="footer">
+    <p>© 2026 IP Reputation Checker | Built by Karan</p>
+    <p>Data Sources: Public Threat Intel</p>
+</footer>
+
+</body>
+</html>
