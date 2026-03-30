@@ -9,11 +9,18 @@ from db_ops import create_table, get_ip_data, save_ip_data, save_request_log
 from vpncheck import check_proxycheck, check_ipqs
 from time import time
 from db_ops import cleanup_old_data
+
+# 🔥 Load env first
+load_dotenv()
+
+# 🔥 First create tables
+create_table()
+
+# 🔥 Then cleanup
 cleanup_old_data()
 
 last_request = {}
-# 🔥 Load env first
-load_dotenv()
+
 
 ABUSEIPDB_API_KEY = os.getenv("ABUSEIPDB_API_KEY")
 VT_API_KEY = os.getenv("VT_API_KEY")
