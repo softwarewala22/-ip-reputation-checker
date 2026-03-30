@@ -46,8 +46,32 @@ def check_ip():
     # ✅ Validation
     try:
         valid_ip = str(ipaddress.ip_address(ip))
+
+        ip_obj = ipaddress.ip_address(valid_ip)
+
+        # 🔥 PRIVATE / INTERNAL / SPECIAL IP CHECK (IPv4 + IPv6)
+        if (
+            ip_obj.is_private or
+            ip_obj.is_loopback or
+            ip_obj.is_reserved or
+            ip_obj.is_multicast or
+            ip_obj.is_link_local
+        ):
+            return jsonify({
+                "ip": valid_ip,
+                "type": "internal",
+                "message": "Internal/Reserved IP detected",
+                "risk_score": 0,
+                "country": "Local Network",
+                "isp": "Internal"
+            })
+    
     except:
         return jsonify({"error": "Invalid IP"}), 400
+    
+        
+
+    
 
     # 🔥 USER INFO
     user_ip = request.headers.get("X-Forwarded-For", request.remote_addr)

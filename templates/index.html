@@ -141,7 +141,7 @@
 .switch input:checked + .slider:before {
   transform: translateX(22px);
 }
-}
+
     </style>
 </head>
 
@@ -201,6 +201,9 @@
         <div class="card"><span class="label">Proxy:</span> <span id="proxy"></span></div>
         <div class="card"><span class="label">TOR:</span> <span id="tor"></span></div>
         <div class="card"><span class="label">Whitelisted:</span> <span id="whitelist"></span></div>
+        <div class="card"><span class="label">Type:</span> <span id="type"></span></div>
+        <div class="card"><span class="label">Message:</span> <span id="message"></span></div>
+        <div class="card"><span class="label">Private IP Ranges:</span> <span id="ranges"></span></div>
     </div>
 </div>
 
@@ -228,6 +231,9 @@
 
 
 <script>
+
+
+  
 
     // ENTER KEY FIX
 document.addEventListener("DOMContentLoaded", function () {
@@ -263,6 +269,30 @@ function isValidIP(ip) {
     return false;
 }
 
+  // 🔥 PRIVATE + INTERNAL IP CHECK (IPv4 + IPv6)
+function isPrivateIP(ip) {
+    // IPv6 check
+    if (ip.includes(":")) {
+        return (
+            ip.startsWith("fc") ||  // Unique local
+            ip.startsWith("fd") ||
+            ip === "::1" ||         // loopback
+            ip.startsWith("fe80")   // link-local
+        );
+    }
+
+    // IPv4 check
+    const parts = ip.split('.').map(Number);
+
+    return (
+        parts[0] === 10 ||
+        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+        (parts[0] === 192 && parts[1] === 168) ||
+        parts[0] === 127 ||   // loopback
+        (parts[0] === 169 && parts[1] === 254)     // link-local
+    );
+}
+
 // ⭐ STAR FUNCTION
 function getStars(count) {
     let stars = "";
@@ -275,6 +305,10 @@ function getStars(count) {
 // 🔥 MAIN FUNCTION
 async function checkIP() {
 
+    // 🔥 Reset all fields visibility
+document.querySelectorAll("#resultBox .card").forEach(el => {
+    el.style.display = "block";
+});
     console.log("🔥 Triggered");
     // 🔥 Hide intro text when search starts
     document.getElementById("introText").style.display = "none";
@@ -295,6 +329,35 @@ async function checkIP() {
         errorBox.innerText = "❌ Invalid IP format";
         return;
     }
+
+    
+
+    // 🔥 PRIVATE BLOCK
+if (isPrivateIP(ip)) {
+
+    document.getElementById("resultBox").style.display = "block";
+    document.getElementById("vtBox").style.display = "none";
+
+    // reset visibility
+    document.querySelectorAll("#resultBox .card").forEach(el => {
+        el.style.display = "none";
+    });
+
+    // show only required
+    document.getElementById("ip").parentElement.style.display = "block";
+    document.getElementById("type").parentElement.style.display = "block";
+    document.getElementById("message").parentElement.style.display = "block";
+    document.getElementById("ranges").parentElement.style.display = "block";
+
+    // values
+    document.getElementById("ip").innerText = ip;
+    document.getElementById("type").innerText = "Private";
+    document.getElementById("message").innerText = `This is private IP ${ip}`;
+    document.getElementById("ranges").innerText =
+        "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
+
+    return;
+}
 
     try {
         let checkVpn = document.getElementById("vpnCheck").checked;
@@ -324,6 +387,10 @@ async function checkIP() {
 
         // ✅ SHOW RESULT
         document.getElementById("resultBox").style.display = "block";
+
+        document.getElementById("type").parentElement.style.display = "none";
+        document.getElementById("message").parentElement.style.display = "none";
+        document.getElementById("ranges").parentElement.style.display = "none";
 
         let statusText = (data.risk_score < 20) ? "SAFE" : "RISKY";
         addToHistory(ip, statusText);
