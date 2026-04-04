@@ -29,13 +29,13 @@ def create_table():
 
 # 🔍 GET IP DATA (VALID FOR LAST 2 DAYS)
 def get_ip_data(ip: str):
-    five_days_ago = datetime.now(timezone.utc) - timedelta(days=5)
+    two_days_ago = datetime.now(timezone.utc) - timedelta(hours=48)
 
     with get_connection() as conn:
         cursor = conn.execute("""
         SELECT data FROM ip_data
         WHERE ip = ? AND created_at >= ?
-        """, (ip, five_days_ago.isoformat()))
+        """, (ip, two_days_ago.isoformat()))
 
         row = cursor.fetchone()
 

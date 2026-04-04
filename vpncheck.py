@@ -1,5 +1,8 @@
 import requests
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PROXYCHECK_API_KEY = os.getenv("PROXYCHECK_API_KEY")
 IPQS_API_KEY = os.getenv("IPQS_API_KEY")
@@ -8,6 +11,7 @@ IPQS_API_KEY = os.getenv("IPQS_API_KEY")
 # 🔥 PROXYCHECK (PRIMARY - PROXY BASED)
 def check_proxycheck(ip):
     print("[VPN] ProxyCheck start")
+    # print("Prxycheck api key", PROXYCHECK_API_KEY)
 
     try:
         url = f"https://proxycheck.io/v2/{ip}?key={PROXYCHECK_API_KEY}&vpn=1"
@@ -50,6 +54,7 @@ def check_proxycheck(ip):
 # 🔥 IPQUALITYSCORE (OPTIONAL - ADVANCED DETECTION)
 def check_ipqs(ip):
     print("[VPN] IPQS start")
+    # print("IPQS KEY:", IPQS_API_KEY)
 
     try:
         url = f"https://ipqualityscore.com/api/json/ip/{IPQS_API_KEY}/{ip}"
