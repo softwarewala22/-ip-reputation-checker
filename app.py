@@ -9,6 +9,8 @@ from db_ops import create_table, get_ip_data, save_ip_data, save_request_log
 from vpncheck import check_proxycheck, check_ipqs
 from time import time
 from db_ops import cleanup_old_data
+from routes.url_decoder import url_decoder_bp
+from routes.safelink import safelink_bp
 
 # 🔥 Load env first
 load_dotenv()
@@ -27,6 +29,8 @@ VT_API_KEY = os.getenv("VT_API_KEY")
 
 app = Flask(__name__)
 
+app.register_blueprint(url_decoder_bp)
+app.register_blueprint(safelink_bp)
 # 🔥 Create tables
 create_table()
 

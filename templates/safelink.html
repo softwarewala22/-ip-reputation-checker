@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SafeLink Remover</title>
+    <style>
+        body {
+            background:#0f172a;
+            color:white;
+            font-family:Arial;
+            text-align:center;
+            padding:40px;
+        }
+
+        .box {
+            width:700px;
+            max-width:90%;
+            margin:auto;
+            background:#1e293b;
+            padding:20px;
+            border-radius:10px;
+        }
+
+        textarea {
+            width:100%;
+            padding:12px;
+            border-radius:8px;
+            margin-top:10px;
+            word-break: break-all;
+        }
+
+        button {
+            margin-top:10px;
+            padding:10px 15px;
+            background:#22c55e;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        .clear {
+            background:#ef4444;
+        }
+
+        button {
+    margin-top: 10px;
+    padding: 10px 16px;
+    background: #22c55e;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-weight: 500;
+
+    transition: all 0.2s ease;
+}
+
+/* 🔥 HOVER EFFECT */
+button:hover {
+    background: #16a34a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* 🔥 CLICK (PRESS) EFFECT */
+button:active {
+    transform: scale(0.95);
+    box-shadow: none;
+}
+.clear {
+    background: #ef4444;
+}
+
+.clear:hover {
+    background: #dc2626;
+}
+.copy-btn {
+    background: #334155;
+}
+
+.copy-btn:hover {
+    background: #475569;
+}
+
+textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #22c55e;
+}
+
+a {
+    color: #909417;   /* 🔥 apna color choose kar */
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0ea5e9;
+}
+
+a:visited {
+    color: #94aa1a;   /* purple hatane ke liye */
+}
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🛡 SafeLink Remover</h2>
+
+    <form method="POST" id="decodeForm">
+        <textarea name="input_url" rows="2"
+        placeholder="Paste Defender SafeLink here">{{ input_url }}</textarea>
+        <br>
+        <button type="submit">Clean</button>
+        <button type="button" class="clear" onclick="clearAll()">Clear</button>
+    </form>
+
+    {% if cleaned_url %}
+    <div id="resultBox">
+        <h3>Original URL:</h3>
+        <textarea id="result" rows="3">{{ cleaned_url }}</textarea>
+        <button onclick="copy()" class="copy-btn">⧉ Copy</button>
+    </div>
+    {% endif %}
+
+    <a href="/">⬅ Back</a>
+</div>
+
+<script>
+function copy(){
+    let text = document.getElementById("result").value;
+    navigator.clipboard.writeText(text);
+}
+
+function clearAll(){
+    document.querySelector('[name="input_url"]').value = "";
+    document.getElementById("resultBox")?.remove();
+}
+</script>
+
+
+<script>
+document.querySelector('[name="input_url"]').addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();   // textarea new line prevent
+        document.getElementById("decodeForm").submit();
+    }
+});
+</script>
+</body>
+</html>

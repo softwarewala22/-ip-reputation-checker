@@ -178,13 +178,81 @@ button:active {
 }
 
 .copy-msg {
-  margin-left: 10px;
+  position: absolute;
+  right: 0;
+  top: 100%;   /* button ke neeche */
+  font-size: 12px;
   color: #22c55e;
-  font-size: 14px;
+
   opacity: 0;
   transition: opacity 0.3s ease;
 }
+.tool-btn {
+    background:#1e293b;
+    padding:8px 14px;
+    border-radius:6px;
+    text-decoration:none;
+    color:white;
+}
 
+.tool-btn:hover {
+    background:#334155;
+}
+
+.vpn-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.vpn-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vpn-right {
+    position: relative;   /* IMPORTANT */
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tool-bar {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+/* SAME BASE STYLE */
+.tool-btn {
+    background: #1e293b;
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #e2e8f0;
+    font-size: 14px;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    transition: all 0.2s ease;
+}
+
+/* HOVER */
+.tool-btn:hover {
+    background: #334155;
+}
+
+/* ACTIVE (like screenshot) */
+.tool-btn.active {
+    background: #1e293b;
+    font-weight: 500;
+}
     </style>
 </head>
 
@@ -193,6 +261,33 @@ button:active {
 <div class="topbar">
     <div>🔐 IP Tool</div>
     <div>Your IP: <span id="myIP">Loading...</span></div>
+</div>
+<!-- <a href="/url-decoder">🔓 URL Decoder</a> -->
+
+<!-- <div style="margin-top:15px;">
+    <a href="/url-decoder" 
+       style="background:#334155; padding:8px 12px; border-radius:6px; text-decoration:none; color:white;">
+        🔓 URL Decoder
+    </a>
+</div>
+
+<div style="margin-top:15px;">
+    <a href="/safelink-remover" 
+       style="background:#334155; padding:8px 12px; border-radius:6px; text-decoration:none; color:white;">
+        🛡 SafeLink Remover
+    </a>
+</div> -->
+
+<div class="tool-bar">
+
+    <a href="/url-decoder" class="tool-btn">
+        🔓 URL Decoder
+    </a>
+
+    <a href="/safelink-remover" class="tool-btn">
+        🛡 SafeLink Remover
+    </a>
+
 </div>
 
 <div class="container">
@@ -215,24 +310,22 @@ button:active {
         </div>
 
         <!-- 🔥 TOGGLE SWITCH -->
-        <div style="margin-bottom:15px; display:flex; align-items:center; position:relative;">
-    
-    <!-- CENTER (toggle) -->
-    <div style="margin: 0 auto; display:flex; align-items:center; gap:10px;">
-        <label class="switch">
-            <input type="checkbox" id="vpnCheck">
-            <span class="slider"></span>
-        </label>
-        <span>VPN / Proxy</span>
-    </div>
+        <div class="vpn-row">
 
-    <!-- RIGHT SIDE (copy button) -->
-    <div style="position:absolute; right:0;">
-        <button onclick="copyResult()" class="copy-icon" title="Copy">⧉</button>
-        <span id="copy-msg" class="copy-msg"></span>
-    </div>
+            <div class="vpn-center">
+                <label class="switch">
+                    <input type="checkbox" id="vpnCheck">
+                    <span class="slider"></span>
+                </label>
+                <span>VPN / Proxy</span>
+            </div>
 
-</div>
+            <div class="vpn-right">
+                <button onclick="copyResult()" class="copy-icon" title="Copy">⧉ Copy</button>
+                <span id="copy-msg" class="copy-msg"></span>
+            </div>
+
+        </div>
 
         <!-- 🔥 INTRO TEXT -->
 <div id="introText" style="margin-top:10px; color:#94a3b8; font-size:13px;">

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Decoder</title>
+
+    <style>
+        body {
+            background:#0f172a;
+            color:white;
+            font-family:Arial;
+            text-align:center;
+            padding:40px;
+        }
+
+        .box {
+            width:700px;
+            max-width:90%;
+            margin:auto;
+            background:#1e293b;
+            padding:20px;
+            border-radius:10px;
+        }
+
+        textarea {
+            width:100%;
+            padding:12px;
+            border-radius:8px;
+            margin-top:10px;
+            word-break: break-all;
+        }
+
+        button {
+            margin-top:10px;
+            padding:10px 16px;
+            background:#22c55e;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+            color:white;
+            font-weight:500;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background:#16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: scale(0.95);
+            box-shadow:none;
+        }
+
+        .clear {
+            background:#ef4444;
+        }
+
+        .clear:hover {
+            background:#dc2626;
+        }
+
+        .copy-btn {
+            background:#334155;
+        }
+
+        .copy-btn:hover {
+            background:#475569;
+        }
+
+        textarea:focus {
+            outline:none;
+            box-shadow: 0 0 0 2px #22c55e;
+        }
+
+        a {
+    color: #909417;   /* 🔥 apna color choose kar */
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0ea5e9;
+}
+
+a:visited {
+    color: #94aa1a;   /* purple hatane ke liye */
+}
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>🔓 URL Decoder</h2>
+
+    <form method="POST" id="decodeForm">
+        <textarea name="encoded_url" rows="2"
+        placeholder="Enter encoded URL">{{ encoded_url }}</textarea>
+
+        <br>
+        <button type="submit">Decode</button>
+        <button type="button" class="clear" onclick="clearAll()">Clear</button>
+    </form>
+
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+
+    {% if decoded_url %}
+    <div id="resultBox">
+        <h3>Decoded URL:</h3>
+
+        <textarea id="decodedText" rows="3">{{ decoded_url }}</textarea>
+
+        <button onclick="copy()" class="copy-btn">⧉ Copy</button>
+    </div>
+    {% endif %}
+
+    <a href="/">⬅ Back</a>
+</div>
+
+<!-- COPY -->
+<script>
+function copy(){
+    let text = document.getElementById("decodedText").value;
+    navigator.clipboard.writeText(text);
+}
+</script>
+
+<!-- CLEAR -->
+<script>
+function clearAll(){
+    document.querySelector('[name="encoded_url"]').value = "";
+    document.getElementById("resultBox")?.remove();
+}
+</script>
+
+<!-- ENTER SUBMIT -->
+<script>
+document.querySelector('[name="encoded_url"]').addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("decodeForm").submit();
+    }
+});
+</script>
+
+</body>
+</html>
