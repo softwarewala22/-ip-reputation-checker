@@ -99,39 +99,51 @@ def check_ip():
         try:
             response = requests.get(url, headers=headers, params=params, timeout=5)
             abuse_data = response.json().get('data', {})
-            print(abuse_data)
-            
+            print("abuse_data",abuse_data)
+
             # 🌍 GEO LOCATION (ADD HERE)
             # 🌍 GEO LOCATION (DUAL API + REGION)
             city = "N/A"
             region = ""
 
             # 🔥 PRIMARY (ip-api)
+            city = "N/A"
+            region = ""
+
+            # 🔥 PRIMARY (ipapi)
             try:
-                geo_url = f"http://ip-api.com/json/{valid_ip}?fields=status,city,regionName"
-                geo_res = requests.get(geo_url, timeout=5)
-                geo_json = geo_res.json()
+                print(f"[GEO] Checking IP: {valid_ip}")
+                geo_url = f"https://ipapi.co/{valid_ip}/json/"
+                res = requests.get(geo_url, timeout=5)
+                data = res.json()
+                print("[GEO1 RAW ipapi]:", data)
 
-                print("[GEO1]:", geo_json)
+                if not data.get("error"):
+                    city = data.get("city") or "N/A"
+                    region = data.get("region") or ""
+                    print(f"[GEO1 SUCCESS] City: {city}, Region: {region}")
 
-                if geo_json.get("status") == "success":
-                    city = geo_json.get("city", "N/A")
-                    region = geo_json.get("regionName", "")
+                else:
+                    print("[GEO1 FAILED]:", data)
+                    
 
             except Exception as e:
                 print("[GEO1 ERROR]:", e)
 
-            # 🔁 FALLBACK (ipapi)
-            if city == "N/A" or not city:
+            # 🔁 FALLBACK (ipwhois)
+            if city == "N/A":
                 try:
-                    geo_url2 = f"https://ipapi.co/{valid_ip}/json/"
-                    geo_res2 = requests.get(geo_url2, timeout=5)
-                    geo_json2 = geo_res2.json()
+                    print("inside city check whois")
+                    geo_url2 = f"http://ipwho.is/{valid_ip}"
+                    res2 = requests.get(geo_url2, timeout=5)
+                    data2 = res2.json()
 
-                    print("[GEO2]:", geo_json2)
+                    print("[GEO2]:", data2)
 
-                    city = geo_json2.get("city", "N/A")
-                    region = geo_json2.get("region", "")
+                    if data2.get("success"):
+                        city = data2.get("city") or "N/A"
+                        region = data2.get("region") or ""
+                        print(f"[GEO2 SUCCESS] City: {city}, Region: {region}")
 
                 except Exception as e:
                     print("[GEO2 ERROR]:", e)
@@ -257,7 +269,7 @@ def check_ip():
         # ✅ NOW debug print
         print("[DEBUG] FINAL VPN RESULT:", vpn_result)
 
-             
+        print(f"[GEO FINAL] City: {city}, Region: {region}")
         result = {
             "ip": abuse_data.get("ipAddress", valid_ip),
             "risk_score": abuse_data.get("abuseConfidenceScore", 0),
