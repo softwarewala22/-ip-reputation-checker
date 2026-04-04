@@ -152,6 +152,39 @@ button:active {
   transform: translateX(22px);
 }
 
+.copy-btn {
+  background: #1e293b;
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.copy-btn:hover {
+  background: #334155;
+}
+
+.copy-icon {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 18px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.copy-icon:hover {
+  color: #22c55e;
+}
+
+.copy-msg {
+  margin-left: 10px;
+  color: #22c55e;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
     </style>
 </head>
 
@@ -182,13 +215,24 @@ button:active {
         </div>
 
         <!-- 🔥 TOGGLE SWITCH -->
-        <div style="margin-bottom:15px; display:flex; justify-content:center; align-items:center; gap:10px;">
-            <label class="switch">
-                <input type="checkbox" id="vpnCheck">
-                <span class="slider"></span>
-            </label>
-            <span>VPN / Proxy</span>
-        </div>
+        <div style="margin-bottom:15px; display:flex; align-items:center; position:relative;">
+    
+    <!-- CENTER (toggle) -->
+    <div style="margin: 0 auto; display:flex; align-items:center; gap:10px;">
+        <label class="switch">
+            <input type="checkbox" id="vpnCheck">
+            <span class="slider"></span>
+        </label>
+        <span>VPN / Proxy</span>
+    </div>
+
+    <!-- RIGHT SIDE (copy button) -->
+    <div style="position:absolute; right:0;">
+        <button onclick="copyResult()" class="copy-icon" title="Copy">⧉</button>
+        <span id="copy-msg" class="copy-msg"></span>
+    </div>
+
+</div>
 
         <!-- 🔥 INTRO TEXT -->
 <div id="introText" style="margin-top:10px; color:#94a3b8; font-size:13px;">
@@ -200,6 +244,7 @@ button:active {
     <div class="error" id="errorMsg"></div>
 
     <div class="result" id="resultBox" style="display:none;">
+        
         <div class="card"><span class="label">IP:</span> <span id="ip"></span></div>
         <div class="card"><span class="label">Risk Score:</span> <span id="score"></span></div>
         <div class="card"><span class="label">Status:</span> <span id="status" class="badge"></span></div>
@@ -215,6 +260,7 @@ button:active {
         <div class="card"><span class="label">Type:</span> <span id="type"></span></div>
         <div class="card"><span class="label">Message:</span> <span id="message"></span></div>
         <div class="card"><span class="label">Private IP Ranges:</span> <span id="ranges"></span></div>
+
     </div>
 </div>
 
@@ -391,6 +437,9 @@ if (isPrivateIP(ip)) {
             return;
         }
 
+        setCopyData(data);
+        console.log(data.copy_text);
+
         if (!res.ok) {
             errorBox.innerText = data.error || "Request failed";
             return;
@@ -539,6 +588,29 @@ document.getElementById("ipInput").addEventListener("keypress", function(e) {
 
 </script>
 
+<script>
+let copyData = "";
+
+function setCopyData(data) {
+    copyData = data.copy_text;
+}
+
+function copyResult() {
+    navigator.clipboard.writeText(copyData)
+        .then(() => {
+            const msg = document.getElementById("copy-msg");
+            msg.innerText = "Copied ✅";
+            msg.style.opacity = 1;
+
+            setTimeout(() => {
+                msg.style.opacity = 0;
+            }, 1500);
+        })
+        .catch(err => {
+            console.error("Copy failed:", err);
+        });
+}
+</script>
 
 <footer class="footer">
     <p>© 2026 IP Reputation Checker | Built by Karan</p>

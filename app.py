@@ -99,15 +99,43 @@ def check_ip():
         try:
             response = requests.get(url, headers=headers, params=params, timeout=5)
             abuse_data = response.json().get('data', {})
+            print(abuse_data)
             
             # 🌍 GEO LOCATION (ADD HERE)
-            geo_url = f"http://ip-api.com/json/{valid_ip}"
+            # 🌍 GEO LOCATION (DUAL API + REGION)
+            city = "N/A"
+            region = ""
 
+            # 🔥 PRIMARY (ip-api)
             try:
+                geo_url = f"http://ip-api.com/json/{valid_ip}?fields=status,city,regionName"
                 geo_res = requests.get(geo_url, timeout=5)
-                geo_data = geo_res.json()
-            except:
-                geo_data = {}
+                geo_json = geo_res.json()
+
+                print("[GEO1]:", geo_json)
+
+                if geo_json.get("status") == "success":
+                    city = geo_json.get("city", "N/A")
+                    region = geo_json.get("regionName", "")
+
+            except Exception as e:
+                print("[GEO1 ERROR]:", e)
+
+            # 🔁 FALLBACK (ipapi)
+            if city == "N/A" or not city:
+                try:
+                    geo_url2 = f"https://ipapi.co/{valid_ip}/json/"
+                    geo_res2 = requests.get(geo_url2, timeout=5)
+                    geo_json2 = geo_res2.json()
+
+                    print("[GEO2]:", geo_json2)
+
+                    city = geo_json2.get("city", "N/A")
+                    region = geo_json2.get("region", "")
+
+                except Exception as e:
+                    print("[GEO2 ERROR]:", e)
+
         except:
             abuse_data = {}
 
@@ -163,8 +191,8 @@ def check_ip():
         print("DEBUG COUNTRY CODE:", abuse_data.get("countryCode"))
         print("DEBUG FULL COUNTRY:", full_country)
         
-                # 🔥 VPN CHECK
-        vpn_result = check_proxycheck(valid_ip)
+    # 🔥 VPN CHECK
+        proxycheck_result  = check_proxycheck(valid_ip)
 
         ipqs_result = {}
 
@@ -172,35 +200,29 @@ def check_ip():
             ipqs_result = check_ipqs(valid_ip)
 
         # 🔥 COMBINE LOGIC (IMPORTANT FIX)
-        vpn = vpn_result.get("vpn", False) or ipqs_result.get("vpn", False)
-        proxy = vpn_result.get("proxy", False) or ipqs_result.get("proxy", False)
-        tor = vpn_result.get("tor", False) or ipqs_result.get("tor", False)
+        vpn = proxycheck_result.get("vpn", False) or ipqs_result.get("vpn", False)
+        proxy = proxycheck_result.get("proxy", False) or ipqs_result.get("proxy", False)
+        tor = proxycheck_result.get("tor", False) or ipqs_result.get("tor", False)
 
-        vpn_result["vpn"] = vpn
-        vpn_result["proxy"] = proxy
-        vpn_result["tor"] = tor
+    
 
-        # attach ipqs for scoring
-        vpn_result["ipqs"] = ipqs_result
-
-        print("[DEBUG] FINAL VPN RESULT:", vpn_result)
         
-                # 🔥 SCORING (RIGHT PLACE)
+     # 🔥 SCORING (VPN, pProxy, TOR)
         vpn_score = 0
         proxy_score = 0
         tor_score = 0
 
         # ProxyCheck
-        if vpn_result.get("vpn"):
+        if proxycheck_result.get("vpn"):
             vpn_score += 1
 
-        if vpn_result.get("proxy"):
+        if proxycheck_result.get("proxy"):
             proxy_score += 1
 
-        # IPQS
+
         # 🔥 IPQS
-        if check_vpn and vpn_result.get("ipqs"):
-            ipqs = vpn_result["ipqs"]
+        if check_vpn and ipqs_result:
+            ipqs = ipqs_result
 
             if ipqs.get("vpn"):
                 vpn_score += 1
@@ -212,7 +234,7 @@ def check_ip():
                 tor_score += 1
 
         # 🔥 ProxyCheck TOR (type based)
-        if vpn_result.get("type") == "TOR":
+        if proxycheck_result.get("type") == "TOR":
             print("[VPN] ProxyCheck TOR detected")
             tor_score += 1
 
@@ -223,20 +245,25 @@ def check_ip():
 
         print("[VPN] FINAL SCORES:", vpn_score, proxy_score, tor_score)
 
-        vpn_result["vpn_score"] = vpn_score
-        vpn_result["proxy_score"] = proxy_score
-        vpn_result["tor_score"] = tor_score
+        vpn_result = {
+            "vpn": vpn,
+            "proxy": proxy,
+            "tor": tor,
+            "ipqs": ipqs_result,
+            "vpn_score": vpn_score,
+            "proxy_score": proxy_score,
+            "tor_score": tor_score
+        }
+        # ✅ NOW debug print
+        print("[DEBUG] FINAL VPN RESULT:", vpn_result)
 
-      
-
-
-        
+             
         result = {
             "ip": abuse_data.get("ipAddress", valid_ip),
             "risk_score": abuse_data.get("abuseConfidenceScore", 0),
             "country": full_country,
             # "country": geo_data.get("country", "N/A"),
-            "city": geo_data.get("city", "N/A"),
+            "city": f"{city}, {region}" if region else city,
             "isp": abuse_data.get("isp", "N/A"),
             "usage": abuse_data.get("usageType", "N/A"),
             "total_reports": abuse_data.get("totalReports", 0),
@@ -244,8 +271,17 @@ def check_ip():
             "vpn_data": vpn_result,
             "is_whitelisted": abuse_data.get("isWhitelisted", False),
             "hostnames": abuse_data.get("hostnames", []),
-            "vt": vt_summary
+            "vt": vt_summary,
+              # 🔥 ADD HERE (INSIDE DICT)
+            "copy_text": (
+                f"IP belongs to ISP: {abuse_data.get('isp', 'N/A')}\n"
+                f"City: {city + (', ' + region if region else '')}, Country: {full_country}\n"
+                f"VPN: {'Yes' if vpn_result.get('vpn') else 'No'}, "
+                f"Proxy: {'Yes' if vpn_result.get('proxy') else 'No'}, "
+                f"TOR: {'Yes' if vpn_result.get('tor') else 'No'}")
         }
+
+        
 
         # 🔥 SAVE TO DB
         save_ip_data(valid_ip, result)
