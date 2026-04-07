@@ -85,9 +85,74 @@ def check_ip():
     cached = get_ip_data(valid_ip)
     if cached:
         print(f"[CACHE HIT] {valid_ip}")
+        print("7-4-26[DEBUG-] vpn_data:", cached.get("vpn_data"))
+
+        # 🔥 CASE: toggle ON but vpn_data missing
+        if check_vpn and not cached.get("vpn_data", {}).get("ipqs"):
+            print("[CACHE] VPN missing → only VPN check")
+
+            # 🔥 ONLY VPN CALLS
+            proxycheck_result = check_proxycheck(valid_ip)
+            ipqs_result = check_ipqs(valid_ip)
+
+            # 🔥 COMBINE
+            vpn = proxycheck_result.get("vpn", False) or ipqs_result.get("vpn", False)
+            proxy = proxycheck_result.get("proxy", False) or ipqs_result.get("proxy", False)
+            tor = proxycheck_result.get("tor", False) or ipqs_result.get("tor", False)
+
+            # 🔥 SCORE
+            vpn_score = 0
+            proxy_score = 0
+            tor_score = 0
+
+            if proxycheck_result.get("vpn"):
+                vpn_score += 1
+            if proxycheck_result.get("proxy"):
+                proxy_score += 1
+
+            if ipqs_result:
+                if ipqs_result.get("vpn"):
+                    vpn_score += 1
+                if ipqs_result.get("proxy"):
+                    proxy_score += 1
+                if ipqs_result.get("tor"):
+                    tor_score += 1
+
+            vpn_result = {
+                "vpn": vpn,
+                "proxy": proxy,
+                "tor": tor,
+                "ipqs": ipqs_result,
+                "vpn_score": vpn_score,
+                "proxy_score": proxy_score,
+                "tor_score": tor_score
+            }
+
+            print("[DEBUG] UPDATED VPN RESULT:", vpn_result)
+
+            # 🔥 UPDATE CACHE
+            cached["vpn_data"] = vpn_result
+
+            # 🔥 UPDATE COPY TEXT
+            cached["copy_text"] = (
+                f"IP belongs to ISP: {cached.get('isp', 'N/A')}\n"
+                f"City: {cached.get('city', '')}, Country: {cached.get('country', '')}\n"
+                f"VPN: {'Yes' if vpn_result.get('vpn') else 'No'}, "
+                f"Proxy: {'Yes' if vpn_result.get('proxy') else 'No'}, "
+                f"TOR: {'Yes' if vpn_result.get('tor') else 'No'}"
+            )
+
+            # 🔥 SAVE UPDATED DATA
+            save_ip_data(valid_ip, cached)
+
+            save_request_log(valid_ip, user_ip, user_agent)
+            return jsonify(cached)
+
+        # ✅ NORMAL CACHE
+        print("[CACHE] using stored data")
         save_request_log(valid_ip, user_ip, user_agent)
         return jsonify(cached)
-
+#############(upper code is new)
     try:
         # 🔥 ABUSEIPDB
         url = "https://api.abuseipdb.com/api/v2/check"
@@ -208,7 +273,9 @@ def check_ip():
         print("DEBUG FULL COUNTRY:", full_country)
         
     # 🔥 VPN CHECK
-        proxycheck_result  = check_proxycheck(valid_ip)
+        proxycheck_result = {"vpn": False, "proxy": False, "tor": False}
+        if check_vpn:
+            proxycheck_result = check_proxycheck(valid_ip)
 
         ipqs_result = {}
 
@@ -284,7 +351,7 @@ def check_ip():
             "usage": abuse_data.get("usageType", "N/A"),
             "total_reports": abuse_data.get("totalReports", 0),
             "is_tor": abuse_data.get("isTor", False),
-            "vpn_data": vpn_result,
+            "vpn_data": vpn_result if check_vpn else {},
             "is_whitelisted": abuse_data.get("isWhitelisted", False),
             "hostnames": abuse_data.get("hostnames", []),
             "vt": vt_summary,

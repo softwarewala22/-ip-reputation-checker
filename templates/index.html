@@ -525,10 +525,15 @@ if (isPrivateIP(ip)) {
 
         try {
             data = await res.json();
+        
         } catch {
             errorBox.innerText = "Invalid server response ❌";
+                 // 🔥 even on error → reset
+            document.getElementById("vpnCheck").checked = false;
             return;
         }
+        // 🔥 after success → reset
+        document.getElementById("vpnCheck").checked = false;
 
         setCopyData(data);
         console.log(data.copy_text);
@@ -677,6 +682,11 @@ document.getElementById("ipInput").addEventListener("keypress", function(e) {
     if (e.key === "Enter") {
         document.getElementById("introText").style.display = "none";
     }
+});
+
+
+window.addEventListener("load", function() {
+    document.getElementById("vpnCheck").checked = false;
 });
 
 </script>
