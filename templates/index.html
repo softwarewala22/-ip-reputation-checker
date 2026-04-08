@@ -9,6 +9,10 @@
             color: #e2e8f0;
             font-family: Arial;
             margin: 0;
+
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         .topbar {
@@ -22,14 +26,14 @@
             background: #1e293b;
             padding: 20px;
             border-radius: 10px;
-            width: 400px;
-            margin: 60px auto;
+            width: 500px;
+            margin: 20px auto 60px auto;
             text-align: center;
         }
 
         input {
             padding: 10px;
-            width: 80%;
+            width: 90%;
             border-radius: 5px;
             border: none;
         }
@@ -253,10 +257,16 @@ button:active {
     background: #1e293b;
     font-weight: 500;
 }
+
+.main-content {
+    flex: 1;
+}
     </style>
 </head>
 
 <body>
+
+<div class="main-content">
 
 <div class="topbar">
     <div>🔐 IP Tool</div>
@@ -288,6 +298,7 @@ button:active {
         🛡 SafeLink Remover
     </a>
 
+    <a href="/domain-age" class="tool-btn">🌐 Domain Age</a>
 </div>
 
 <div class="container">
@@ -374,7 +385,7 @@ button:active {
 </div>
 
 <!-- History BLOCK -->
-<div id="historyBox" class="vt-container" style="margin-top:20px;">
+<div id="historyBox" class="vt-container" style="margin-top:20px; display:none;">
     <h3>Recent Searches</h3>
     <ul id="historyList"></ul>
 </div>
@@ -664,6 +675,13 @@ function addToHistory(ip, status) {
     let list = document.getElementById("historyList");
     list.innerHTML = "";
 
+    // 🔥 SHOW / HIDE FIX
+    let box = document.getElementById("historyBox");
+        if (history.length === 0) {
+            box.style.display = "none";
+        } else {
+            box.style.display = "block";
+        }
     history.forEach(item => {
         let li = document.createElement("li");
         li.innerText = item;
@@ -714,9 +732,9 @@ function copyResult() {
         });
 }
 </script>
-
+</div>
 <footer class="footer">
-    <p>© 2026 IP Reputation Checker | Built by Karan</p>
+    <p>© 2026 IP Reputation Checker | Built by Softwarewalla</p>
     <p>Data Sources: Public Threat Intel</p>
 </footer>
 

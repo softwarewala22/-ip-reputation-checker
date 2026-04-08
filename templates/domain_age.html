@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Domain Age Checker</title>
+
+<style>
+body {
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+    padding:40px;
+}
+
+.box {
+    width:700px;
+    max-width:90%;
+    margin:auto;
+    background:#1e293b;
+    padding:20px;
+    border-radius:10px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+input {
+    width:100%;
+    padding:12px;
+    border-radius:8px;
+    margin-top:10px;
+}
+
+button {
+    margin-top:10px;
+    padding:10px 16px;
+    background:#22c55e;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    color:white;
+}
+
+button:hover {
+    background:#16a34a;
+}
+
+.result {
+    margin-top:20px;
+}
+a {
+    color: #909417;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0ea5e9;
+}
+
+a:visited {
+    color: #94aa1a;
+}
+
+/* 🔥 HOVER EFFECT */
+button:hover {
+    background: #16a34a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* 🔥 CLICK (PRESS) EFFECT */
+button:active {
+    transform: scale(0.95);
+    box-shadow: none;
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+<h2>🌐 Domain Age Checker</h2>
+
+<form method="POST">
+<input type="text" name="domain" placeholder="Enter domain (example.com)" value="{{ domain_input }}">
+<br>
+<button type="submit">Check</button>
+</form>
+
+<!-- ✅ RESULT -->
+{% if age_text %}
+<div class="result">
+
+    <h3>{{ domain_input }} was registered on:</h3>
+
+    <p style="font-size:18px; font-weight:bold;">
+        {{ pretty_date }}
+    </p>
+
+    <p style="
+        font-size:16px;
+        font-weight:bold;
+        color: {{ 'red' if is_risky else '#22c55e' }};
+    ">
+        {{ age_text }}
+    </p>
+
+    {% if is_risky %}
+    <p style="color:red; font-weight:bold;">
+        ⚠️ Newly registered domain (High Risk)
+    </p>
+    {% endif %}
+
+</div>
+{% endif %}
+
+<!-- ❌ ERROR -->
+{% if error and not age_text %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+
+<br>
+<a href="/">⬅ Back</a>
+
+</div>
+
+</body>
+</html>
