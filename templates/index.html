@@ -1,742 +1,413 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>IP Reputation Checker</title>
-
+    <title>IPSentinel — IP Reputation Checker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: #0f172a;
-            color: #e2e8f0;
-            font-family: Arial;
-            margin: 0;
-
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+        :root {
+            --bg:        #0e1623;
+            --surface:   #162035;
+            --card:      #1a2840;
+            --border:    #243552;
+            --text:      #dde8f8;
+            --muted:     #6b8ab5;
+            --accent:    #3b82f6;
+            --accent2:   #06b6d4;
+            --green:     #10b981;
+            --red:       #ef4444;
+            --orange:    #f59e0b;
+            --mono:      'Space Mono', monospace;
+            --sans:      'DM Sans', sans-serif;
+            --sw:        220px;
         }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
+        body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
 
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-            background: #020617;
-        }
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: 0; height: 100vh; width: var(--sw); background: #0a1120; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 200; transition: transform .28s cubic-bezier(.4,0,.2,1); box-shadow: 4px 0 20px rgba(0,0,0,0.3); }
+        .sidebar.pinned { transform: translateX(0); }
+        .sidebar.hidden  { transform: translateX(calc(-1 * var(--sw))); }
+        .sb-header { display: flex; align-items: center; justify-content: space-between; padding: 17px 14px 13px; border-bottom: 1px solid var(--border); }
+        .sb-brand  { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: .04em; display: flex; align-items: center; gap: 7px; }
+        .sb-brand::before { content:''; width:7px; height:7px; background:var(--green); border-radius:50%; box-shadow:0 0 7px var(--green); animation: dot 2s infinite; }
+        @keyframes dot { 0%,100%{opacity:1} 50%{opacity:.35} }
+        .pin-btn { background:none; border:1px solid var(--border); color:var(--muted); width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all .18s; padding:0; }
+        .pin-btn:hover { border-color:var(--accent); color:var(--accent); }
+        .pin-btn.on { border-color:var(--accent); color:var(--accent); background:rgba(59,130,246,.1); }
+        .sb-nav { flex:1; padding:10px 9px; display:flex; flex-direction:column; gap:3px; overflow-y:auto; }
+        .nav-item { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; color:var(--muted); text-decoration:none; font-size:13px; font-weight:500; transition:all .18s; border:1px solid transparent; }
+        .nav-item:hover  { background:var(--card); color:var(--text); border-color:var(--border); }
+        .nav-item.active { background:rgba(59,130,246,.12); color:var(--accent); border-color:rgba(59,130,246,.25); }
+        .nav-icon { font-size:15px; width:20px; text-align:center; }
+        .sb-footer { padding:13px 14px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--muted); }
+        .sb-footer span { color:var(--accent2); }
+        .sb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:199; }
+        .sb-overlay.show { display:block; }
+        .sb-tab { position:fixed; top:50%; left:0; transform:translateY(-50%); z-index:198; background:var(--card); border:1px solid var(--border); border-left:none; border-radius:0 8px 8px 0; color:var(--muted); width:26px; height:50px; cursor:pointer; font-size:15px; display:none; align-items:center; justify-content:center; transition:color .2s,border-color .2s; }
+        .sb-tab:hover { color:var(--accent); border-color:var(--accent); }
+        .sb-tab.vis { display:flex; }
 
-        .container {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 10px;
-            width: 500px;
-            margin: 20px auto 60px auto;
-            text-align: center;
-        }
+        /* LAYOUT */
+        .page-wrap { display:flex; flex-direction:column; flex:1; transition:margin-left .28s cubic-bezier(.4,0,.2,1); }
+        .page-wrap.shifted { margin-left:var(--sw); }
 
-        input {
-            padding: 10px;
-            width: 90%;
-            border-radius: 5px;
-            border: none;
-        }
+        /* TOPBAR */
+        .topbar { position:relative; z-index:10; display:flex; align-items:center; justify-content:flex-end; padding:12px 22px; background:rgba(14,22,35,.92); border-bottom:1px solid var(--border); backdrop-filter:blur(10px); }
+        .topbar-ip { font-family:var(--mono); font-size:12px; color:var(--muted); background:var(--card); padding:5px 12px; border-radius:20px; border:1px solid var(--border); }
+        .topbar-ip span { color:var(--accent2); }
 
-button {
-    padding: 10px 20px;
-    font-size: 16px;
-    background: #22c55e;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
+        /* MAIN */
+        .main { position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; padding:34px 22px 60px; }
 
-button:hover {
-    background: #16a34a;   /* 🔥 visible hover */
-}
+        /* HERO */
+        .hero { text-align:center; margin-bottom:26px; }
+        .hero-tag { display:inline-block; font-family:var(--mono); font-size:11px; letter-spacing:.15em; color:var(--accent); background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.25); padding:4px 12px; border-radius:20px; margin-bottom:11px; }
+        .hero h1 { font-family:var(--mono); font-size:clamp(20px,3.2vw,30px); font-weight:700; color:#fff; letter-spacing:-.02em; }
+        .hero h1 span { color:var(--accent); }
+        .hero-sub { margin-top:7px; color:var(--muted); font-size:13px; max-width:420px; margin-inline:auto; }
 
-button:active {
-    transform: scale(0.96);
-    background: #15803d;
-}
-        .error {
-            color: red;
-            margin-top: 10px;
-        }
+        /* SEARCH */
+        .search-wrap { width:100%; max-width:530px; margin-bottom:22px; }
+        .search-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:0 2px 28px rgba(0,0,0,.18); }
+        .search-row { display:flex; gap:9px; margin-bottom:13px; }
+        .ip-input { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:#fff; font-family:var(--mono); font-size:14px; padding:10px 13px; outline:none; transition:border-color .2s; }
+        .ip-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+        .ip-input::placeholder { color:var(--muted); }
 
-        .result {
-            margin-top: 20px;
-            text-align: left;
-        }
+        /* BUTTON SYSTEM */
+        .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border:none; border-radius:8px; font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer; transition:all .18s; white-space:nowrap; text-decoration:none; line-height:1; }
+        .btn:active { transform:scale(.97); }
+        .btn-primary  { background:var(--accent); color:#fff; }
+        .btn-primary:hover { background:#2563eb; transform:translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,.3); }
+        .btn-secondary { background:var(--card); color:var(--text); border:1px solid var(--border); }
+        .btn-secondary:hover { border-color:var(--accent2); color:var(--accent2); }
+        .btn-danger  { background:var(--red); color:#fff; }
+        .btn-danger:hover { background:#dc2626; }
+        .btn-ghost   { background:transparent; color:var(--muted); border:1px solid var(--border); padding:7px 12px; font-size:12px; }
+        .btn-ghost:hover { border-color:var(--accent2); color:var(--accent2); }
+        .btn.loading { opacity:.7; cursor:not-allowed; }
 
-        .card {
-            background: #020617;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-            word-break: break-all;
-        }
+        .controls-row { display:flex; align-items:center; justify-content:space-between; }
+        .vpn-toggle { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+        .switch { position:relative; width:40px; height:22px; display:inline-block; }
+        .switch input { opacity:0; width:0; height:0; }
+        .slider { position:absolute; inset:0; background:var(--border); border-radius:34px; cursor:pointer; transition:.3s; }
+        .slider::before { content:''; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+        .switch input:checked + .slider { background:var(--accent); }
+        .switch input:checked + .slider::before { transform:translateX(18px); }
+        .copy-msg { font-size:11px; color:var(--green); opacity:0; transition:opacity .3s; margin-left:4px; }
+        .error-msg { color:var(--red); font-size:13px; margin-top:8px; font-family:var(--mono); min-height:18px; }
+        .intro-text { font-size:13px; color:var(--muted); margin-top:10px; line-height:1.6; }
 
-        .label {
-            color: #38bdf8;
-        }
+        /* RESULTS */
+        .results-grid { width:100%; max-width:860px; display:grid; grid-template-columns:1fr 1fr; gap:13px; animation:fadeUp .3s ease; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        .result-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:15px 17px; }
+        .result-card h3 { font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; margin-bottom:11px; display:flex; align-items:center; gap:7px; }
+        .result-card h3::after { content:''; flex:1; height:1px; background:var(--border); }
+        .field-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(36,53,82,.6); font-size:13px; }
+        .field-row:last-child { border-bottom:none; }
+        .field-label { color:var(--muted); font-size:12px; }
+        .field-value { font-family:var(--mono); font-size:12px; color:var(--text); text-align:right; word-break:break-all; max-width:62%; }
+        .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-family:var(--mono); font-weight:700; letter-spacing:.05em; }
+        .badge-safe  { background:rgba(16,185,129,.13); color:var(--green); border:1px solid rgba(16,185,129,.27); }
+        .badge-risk  { background:rgba(239,68,68,.13);  color:var(--red);   border:1px solid rgba(239,68,68,.27); }
+        .badge-warn  { background:rgba(245,158,11,.13); color:var(--orange); border:1px solid rgba(245,158,11,.27); }
+        .badge-muted { background:rgba(107,138,181,.1); color:var(--muted); border:1px solid var(--border); }
+        .score-wrap { display:flex; align-items:center; gap:13px; padding:7px 0 11px; }
+        .score-ring { position:relative; width:62px; height:62px; flex-shrink:0; }
+        .score-ring svg { transform:rotate(-90deg); }
+        .score-ring-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:14px; font-weight:700; }
+        .score-ring-info { flex:1; }
+        .score-ring-title { font-size:11px; color:var(--muted); margin-bottom:4px; }
+        .flag-row { display:flex; gap:5px; flex-wrap:wrap; padding:3px 0; }
+        .flag { padding:3px 8px; border-radius:5px; font-size:11px; font-family:var(--mono); border:1px solid; }
+        .flag-on  { background:rgba(239,68,68,.1);  color:var(--red);   border-color:rgba(239,68,68,.3); }
+        .flag-off { background:rgba(16,185,129,.08); color:var(--green); border-color:rgba(16,185,129,.2); }
+        .vt-vendors { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+        .vendor-tag { background:rgba(239,68,68,.1); color:#fca5a5; border:1px solid rgba(239,68,68,.2); padding:2px 7px; border-radius:4px; font-size:11px; font-family:var(--mono); }
+        .history-list { list-style:none; }
+        .history-list li { padding:6px 0; font-size:13px; font-family:var(--mono); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; cursor:pointer; transition:color .15s; }
+        .history-list li:last-child { border-bottom:none; }
+        .history-list li:hover { color:var(--accent2); }
+        .h-safe  { color:var(--green); }
+        .h-risky { color:var(--red); }
+        .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+        @keyframes spin { to{transform:rotate(360deg)} }
 
-        .badge {
-            padding: 3px 8px;
-            border-radius: 5px;
-        }
+        footer { position:relative; z-index:10; border-top:1px solid var(--border); padding:12px 22px; background:rgba(14,22,35,.92); display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); flex-wrap:wrap; gap:8px; }
 
-        .safe { background: green; }
-        .risk { background: red; }
-
-        .malicious { color: red; font-weight: bold; }
-        .suspicious { color: orange; font-weight: bold; }
-        .safe-text { color: lightgreen; font-weight: bold; }
-
-        .vt-container {
-             background: #1e293b;
-            padding: 20px;
-            border-radius: 10px;
-            width: 400px;
-            margin: 20px 0 0 20px;
-            text-align: left;
-        }
-
-       
-        .footer {
-    margin-top: 40px;
-    padding: 15px;
-    background: #020617;
-    color: #94a3b8;
-    font-size: 14px;
-    text-align: center;
-    border-top: 1px solid #1e293b;}
-
-    /* 🔥 TOGGLE SWITCH FIX */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 46px;
-  height: 24px;
-  vertical-align: middle;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  background-color: #475569;
-  border-radius: 34px;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  transition: 0.4s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  border-radius: 50%;
-  transition: 0.4s;
-}
-
-.switch input:checked + .slider {
-  background-color: #22c55e;
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(22px);
-}
-
-.copy-btn {
-  background: #1e293b;
-  color: white;
-  border: none;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.copy-btn:hover {
-  background: #334155;
-}
-
-.copy-icon {
-  background: transparent;
-  border: none;
-  color: #ccc;
-  font-size: 18px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.copy-icon:hover {
-  color: #22c55e;
-}
-
-.copy-msg {
-  position: absolute;
-  right: 0;
-  top: 100%;   /* button ke neeche */
-  font-size: 12px;
-  color: #22c55e;
-
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.tool-btn {
-    background:#1e293b;
-    padding:8px 14px;
-    border-radius:6px;
-    text-decoration:none;
-    color:white;
-}
-
-.tool-btn:hover {
-    background:#334155;
-}
-
-.vpn-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    margin-bottom: 15px;
-}
-
-.vpn-center {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.vpn-right {
-    position: relative;   /* IMPORTANT */
-    right: 0;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.tool-bar {
-    display: flex;
-    gap: 10px;
-    margin: 15px 0;
-}
-
-/* SAME BASE STYLE */
-.tool-btn {
-    background: #1e293b;
-    padding: 8px 14px;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #e2e8f0;
-    font-size: 14px;
-
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    transition: all 0.2s ease;
-}
-
-/* HOVER */
-.tool-btn:hover {
-    background: #334155;
-}
-
-/* ACTIVE (like screenshot) */
-.tool-btn.active {
-    background: #1e293b;
-    font-weight: 500;
-}
-
-.main-content {
-    flex: 1;
-}
+        @media(max-width:700px) { .results-grid{grid-template-columns:1fr} .page-wrap.shifted{margin-left:0} }
     </style>
 </head>
-
 <body>
 
-<div class="main-content">
-
-<div class="topbar">
-    <div>🔐 IP Tool</div>
-    <div>Your IP: <span id="myIP">Loading...</span></div>
+<!-- SIDEBAR -->
+<div id="sidebar" class="sidebar pinned">
+    <div class="sb-header">
+        <span class="sb-brand">IPSentinel</span>
+        <button class="pin-btn on" id="pinBtn" onclick="togglePin()" title="Pin/Unpin sidebar">📌</button>
+    </div>
+    <nav class="sb-nav">
+        <a href="/" class="nav-item active"><span class="nav-icon">🔍</span><span>IP Checker</span></a>
+        <a href="/url-decoder" class="nav-item"><span class="nav-icon">🔓</span><span>URL Decoder</span></a>
+        <a href="/safelink-remover" class="nav-item"><span class="nav-icon">🛡</span><span>SafeLink Remover</span></a>
+        <a href="/domain-age" class="nav-item"><span class="nav-icon">🌐</span><span>Domain Age</span></a>
+    </nav>
+    <div class="sb-footer">Your IP: <span id="sidebarIP">—</span></div>
 </div>
-<!-- <a href="/url-decoder">🔓 URL Decoder</a> -->
+<div id="sbOverlay" class="sb-overlay" onclick="closeSidebar()"></div>
+<button class="sb-tab" id="sbTab" onclick="openSidebar()">☰</button>
 
-<!-- <div style="margin-top:15px;">
-    <a href="/url-decoder" 
-       style="background:#334155; padding:8px 12px; border-radius:6px; text-decoration:none; color:white;">
-        🔓 URL Decoder
-    </a>
-</div>
+<!-- PAGE WRAP -->
+<div class="page-wrap shifted" id="pageWrap">
+    <header class="topbar">
+        <div class="topbar-ip">Your IP: <span id="myIP">—</span></div>
+    </header>
 
-<div style="margin-top:15px;">
-    <a href="/safelink-remover" 
-       style="background:#334155; padding:8px 12px; border-radius:6px; text-decoration:none; color:white;">
-        🛡 SafeLink Remover
-    </a>
-</div> -->
-
-<div class="tool-bar">
-
-    <a href="/url-decoder" class="tool-btn">
-        🔓 URL Decoder
-    </a>
-
-    <a href="/safelink-remover" class="tool-btn">
-        🛡 SafeLink Remover
-    </a>
-
-    <a href="/domain-age" class="tool-btn">🌐 Domain Age</a>
-</div>
-
-<div class="container">
-    <h2>🔍 IP Reputation Checker</h2>
-    
-    <!-- 🔥 FORM FIXED -->
-    <form onsubmit="return false;">
-            
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-            
-            <input type="text" id="ipInput" placeholder="Enter IP" 
-                style="flex:1; padding:10px; border-radius:6px; border:none;">
-
-            <!-- <button onclick="checkIP()" 
-                    style="padding:10px 16px; background:#00c853; border:none; border-radius:6px; cursor:pointer;"> -->
-            <button onclick="checkIP()">Check</button>
-                <!-- Check -->
-            </button>
-
+    <main class="main">
+        <div class="hero">
+            <div class="hero-tag">THREAT INTELLIGENCE</div>
+            <h1>IP <span>Reputation</span> Scanner</h1>
+            <p class="hero-sub">Real-time analysis via AbuseIPDB, VirusTotal & VPN detection</p>
         </div>
 
-        <!-- 🔥 TOGGLE SWITCH -->
-        <div class="vpn-row">
-
-            <div class="vpn-center">
-                <label class="switch">
-                    <input type="checkbox" id="vpnCheck">
-                    <span class="slider"></span>
-                </label>
-                <span>VPN / Proxy</span>
+        <div class="search-wrap">
+            <div class="search-card">
+                <div class="search-row">
+                    <input type="text" id="ipInput" class="ip-input" placeholder="Enter IPv4 or IPv6 address…" autocomplete="off" spellcheck="false">
+                    <button class="btn btn-primary" id="checkBtn" onclick="checkIP()">Analyze</button>
+                </div>
+                <div class="controls-row">
+                    <label class="vpn-toggle">
+                        <label class="switch"><input type="checkbox" id="vpnCheck"><span class="slider"></span></label>
+                        VPN / Proxy Detection
+                    </label>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button class="btn btn-ghost" onclick="copyResult()">⧉ Copy</button>
+                        <span id="copy-msg" class="copy-msg">Copied!</span>
+                    </div>
+                </div>
+                <div class="error-msg" id="errorMsg"></div>
+                <div class="intro-text" id="introText">Analyze IP reputation, detect VPN/Proxy, and identify malicious activity.</div>
             </div>
-
-            <div class="vpn-right">
-                <button onclick="copyResult()" class="copy-icon" title="Copy">⧉ Copy</button>
-                <span id="copy-msg" class="copy-msg"></span>
-            </div>
-
         </div>
 
-        <!-- 🔥 INTRO TEXT -->
-<div id="introText" style="margin-top:10px; color:#94a3b8; font-size:13px;">
-    Analyze IP reputation, detect VPN / Proxy usage, and identify malicious activity using real-time threat intelligence.
+        <div class="results-grid" id="resultsGrid" style="display:none;">
+            <!-- Overview -->
+            <div class="result-card">
+                <h3>📍 Overview</h3>
+                <div class="score-wrap">
+                    <div class="score-ring">
+                        <svg width="62" height="62" viewBox="0 0 62 62">
+                            <circle cx="31" cy="31" r="25" fill="none" stroke="var(--border)" stroke-width="5"/>
+                            <circle id="scoreArc" cx="31" cy="31" r="25" fill="none" stroke="var(--green)" stroke-width="5" stroke-linecap="round" stroke-dasharray="157.08" stroke-dashoffset="157.08" style="transition:stroke-dashoffset .8s ease,stroke .5s ease"/>
+                        </svg>
+                        <div class="score-ring-num" id="scoreNum">—</div>
+                    </div>
+                    <div class="score-ring-info">
+                        <div class="score-ring-title">Abuse Confidence Score</div>
+                        <div id="scoreStatus">—</div>
+                    </div>
+                </div>
+                <div class="field-row"><span class="field-label">IP Address</span><span class="field-value" id="ip">—</span></div>
+                <div class="field-row"><span class="field-label">Status</span><span class="field-value" id="status">—</span></div>
+                <div class="field-row"><span class="field-label">Whitelisted</span><span class="field-value" id="whitelist">—</span></div>
+                <div class="field-row"><span class="field-label">TOR Node</span><span class="field-value" id="tor">—</span></div>
+                <div class="field-row" id="rowType" style="display:none"><span class="field-label">Type</span><span class="field-value" id="type">—</span></div>
+                <div class="field-row" id="rowMessage" style="display:none"><span class="field-label">Message</span><span class="field-value" id="message">—</span></div>
+                <div class="field-row" id="rowRanges" style="display:none"><span class="field-label">Private Ranges</span><span class="field-value" id="ranges">—</span></div>
+            </div>
+            <!-- Geo -->
+            <div class="result-card">
+                <h3>🌍 Geo & Network</h3>
+                <div class="field-row"><span class="field-label">Country</span><span class="field-value" id="country">—</span></div>
+                <div class="field-row"><span class="field-label">City</span><span class="field-value" id="city">—</span></div>
+                <div class="field-row"><span class="field-label">ISP</span><span class="field-value" id="isp">—</span></div>
+                <div class="field-row"><span class="field-label">Usage Type</span><span class="field-value" id="usage">—</span></div>
+                <div class="field-row"><span class="field-label">Hostname</span><span class="field-value" id="hostname">—</span></div>
+                <div class="field-row"><span class="field-label">Total Reports</span><span class="field-value" id="totalReports">—</span></div>
+            </div>
+            <!-- VPN -->
+            <div class="result-card">
+                <h3>🔒 VPN / Proxy</h3>
+                <div style="padding:6px 0;color:var(--muted);font-size:13px;" id="vpnNotChecked">Enable VPN detection toggle and search again.</div>
+                <div id="vpnResults" style="display:none;">
+                    <div class="field-row"><span class="field-label">VPN</span><span class="field-value" id="vpn">—</span></div>
+                    <div class="field-row"><span class="field-label">Proxy</span><span class="field-value" id="proxy">—</span></div>
+                    <div class="field-row"><span class="field-label">Fraud Score (IPQS)</span><span class="field-value" id="fraudScore">—</span></div>
+                    <div style="margin-top:9px;"><div class="field-label" style="margin-bottom:6px;font-size:11px;">Signals</div><div class="flag-row" id="vpnFlags"></div></div>
+                </div>
+            </div>
+            <!-- VT -->
+            <div class="result-card" id="vtCard" style="display:none;">
+                <h3>🦠 VirusTotal</h3>
+                <div class="field-row"><span class="field-label">Scan Result</span><span class="field-value" id="vt_score">—</span></div>
+                <div class="field-row"><span class="field-label">Verdict</span><span class="field-value" id="vt_status">—</span></div>
+                <div style="margin-top:9px;"><div class="field-label" style="margin-bottom:6px;font-size:11px;">Flagged by</div><div class="vt-vendors" id="vt_flagged"></div></div>
+            </div>
+            <!-- History -->
+            <div class="result-card" id="historyBox" style="display:none;">
+                <h3>🕓 Recent Searches</h3>
+                <ul class="history-list" id="historyList"></ul>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <span>© 2026 IPSentinel — Built by Softwarewalla</span>
+        <span>AbuseIPDB · VirusTotal · ProxyCheck · IPQS</span>
+    </footer>
 </div>
-
-    </form>
-
-    <div class="error" id="errorMsg"></div>
-
-    <div class="result" id="resultBox" style="display:none;">
-        
-        <div class="card"><span class="label">IP:</span> <span id="ip"></span></div>
-        <div class="card"><span class="label">Risk Score:</span> <span id="score"></span></div>
-        <div class="card"><span class="label">Status:</span> <span id="status" class="badge"></span></div>
-        <div class="card"><span class="label">ISP:</span> <span id="isp"></span></div>
-        <div class="card"><span class="label">Hostname:</span> <span id="hostname"></span></div>
-        <div class="card"><span class="label">Usage:</span> <span id="usage"></span></div>
-        <div class="card"><span class="label">Country:</span> <span id="country"></span></div>
-        <div class="card"><span class="label">City:</span> <span id="city"></span></div>
-        <div class="card"><span class="label">VPN:</span> <span id="vpn"></span></div>
-        <div class="card"><span class="label">Proxy:</span> <span id="proxy"></span></div>
-        <div class="card"><span class="label">TOR:</span> <span id="tor"></span></div>
-        <div class="card"><span class="label">Whitelisted:</span> <span id="whitelist"></span></div>
-        <div class="card"><span class="label">Type:</span> <span id="type"></span></div>
-        <div class="card"><span class="label">Message:</span> <span id="message"></span></div>
-        <div class="card"><span class="label">Private IP Ranges:</span> <span id="ranges"></span></div>
-
-    </div>
-</div>
-
-<!-- VT BLOCK -->
-<div id="vtBox" style="display:none;" class="vt-container">
-
-    <h3>VirusTotal</h3>
-
-    <div class="card"><span class="label">IP:</span> <span id="vt_ip"></span></div>
-    <div class="card"><span class="label">Score:</span> <span id="vt_score"></span></div>
-    <div class="card"><span class="label">Status:</span> <span id="vt_status"></span></div>
-
-    <div class="card">
-        <span class="label">Flagged By:</span>
-        <ul id="vt_flagged"></ul>
-    </div>
-
-</div>
-
-<!-- History BLOCK -->
-<div id="historyBox" class="vt-container" style="margin-top:20px; display:none;">
-    <h3>Recent Searches</h3>
-    <ul id="historyList"></ul>
-</div>
-
 
 <script>
-
-
-  
-
-    // ENTER KEY FIX
-document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("ipInput").addEventListener("keypress", function(e) {
-        if (e.key === "Enter") {
-            checkIP();
-        }
-    });
+/* SIDEBAR */
+let pinned = true;
+function togglePin() {
+    pinned = !pinned;
+    applyPin();
+    localStorage.setItem('sbPin', pinned);
+}
+function applyPin() {
+    const sb=document.getElementById('sidebar'), wrap=document.getElementById('pageWrap'),
+          btn=document.getElementById('pinBtn'), tab=document.getElementById('sbTab');
+    if (pinned) {
+        sb.classList.remove('hidden'); sb.classList.add('pinned');
+        wrap.classList.add('shifted'); btn.classList.add('on');
+        tab.classList.remove('vis'); document.getElementById('sbOverlay').classList.remove('show');
+    } else {
+        sb.classList.add('hidden'); sb.classList.remove('pinned');
+        wrap.classList.remove('shifted'); btn.classList.remove('on');
+        tab.classList.add('vis');
+    }
+}
+function openSidebar()  { document.getElementById('sidebar').classList.remove('hidden'); if(!pinned) document.getElementById('sbOverlay').classList.add('show'); }
+function closeSidebar() { if(!pinned){ document.getElementById('sidebar').classList.add('hidden'); document.getElementById('sbOverlay').classList.remove('show'); } }
+window.addEventListener('DOMContentLoaded', () => {
+    const s=localStorage.getItem('sbPin'); if(s!==null) pinned=s==='true'; applyPin();
 });
 
-// 🔹 Get user IP
-fetch("https://api.ipify.org?format=json")
-.then(res => res.json())
-.then(data => {
-    document.getElementById("myIP").innerText = data.ip;
-});
+/* YOUR IP */
+fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>{
+    document.getElementById('myIP').innerText=d.ip;
+    document.getElementById('sidebarIP').innerText=d.ip;
+}).catch(()=>{});
 
-// 🔹 Validation
-function isValidIP(ip) {
-    ip = ip.trim();
-
-    const ipv4 = ip.split(".");
-    if (ipv4.length === 4) {
-        return ipv4.every(p => /^\d+$/.test(p) && p >= 0 && p <= 255);
-    }
-
-    if (ip.includes(":")) {
-        if ((ip.match(/::/g) || []).length > 1) return false;
-        let parts = ip.split(":").filter(p => p !== "");
-        return parts.length <= 8 && parts.every(p => /^[0-9a-fA-F]{1,4}$/.test(p));
-    }
-
-    return false;
+/* VALIDATION */
+function isValidIP(ip){
+    ip=ip.trim(); const v4=ip.split('.'); if(v4.length===4) return v4.every(p=>/^\d+$/.test(p)&&+p>=0&&+p<=255);
+    if(ip.includes(':')){ if((ip.match(/::/g)||[]).length>1) return false; return ip.split(':').filter(p=>p!=='').length<=8&&ip.split(':').filter(p=>p!=='').every(p=>/^[0-9a-fA-F]{1,4}$/.test(p)); } return false;
+}
+function isPrivateIP(ip){
+    if(ip.includes(':')) return ip.startsWith('fc')||ip.startsWith('fd')||ip==='::1'||ip.startsWith('fe80');
+    const p=ip.split('.').map(Number); return p[0]===10||(p[0]===172&&p[1]>=16&&p[1]<=31)||(p[0]===192&&p[1]===168)||p[0]===127||(p[0]===169&&p[1]===254);
 }
 
-  // 🔥 PRIVATE + INTERNAL IP CHECK (IPv4 + IPv6)
-function isPrivateIP(ip) {
-    // IPv6 check
-    if (ip.includes(":")) {
-        return (
-            ip.startsWith("fc") ||  // Unique local
-            ip.startsWith("fd") ||
-            ip === "::1" ||         // loopback
-            ip.startsWith("fe80")   // link-local
-        );
-    }
-
-    // IPv4 check
-    const parts = ip.split('.').map(Number);
-
-    return (
-        parts[0] === 10 ||
-        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-        (parts[0] === 192 && parts[1] === 168) ||
-        parts[0] === 127 ||   // loopback
-        (parts[0] === 169 && parts[1] === 254)     // link-local
-    );
+/* SCORE RING */
+function animateScore(score){
+    const arc=document.getElementById('scoreArc'), num=document.getElementById('scoreNum'), st=document.getElementById('scoreStatus');
+    arc.style.strokeDashoffset=157.08-(score/100)*157.08;
+    if(score<20){ arc.style.stroke='var(--green)'; st.innerHTML='<span class="badge badge-safe">● SAFE</span>'; }
+    else if(score<60){ arc.style.stroke='var(--orange)'; st.innerHTML='<span class="badge badge-warn">● SUSPICIOUS</span>'; }
+    else { arc.style.stroke='var(--red)'; st.innerHTML='<span class="badge badge-risk">● RISKY</span>'; }
+    num.innerText=score;
 }
 
-// ⭐ STAR FUNCTION
-function getStars(count) {
-    let stars = "";
-    for (let i = 0; i < count; i++) {
-        stars += "⭐";
-    }
-    return stars;
+/* HISTORY */
+let hist=[];
+function addToHistory(ip,status){
+    hist=hist.filter(e=>e.ip!==ip); hist.unshift({ip,status}); if(hist.length>6) hist.pop();
+    const list=document.getElementById('historyList'), box=document.getElementById('historyBox');
+    list.innerHTML=''; hist.forEach(e=>{ const li=document.createElement('li'); li.innerHTML=`<span>${e.ip}</span><span class="${e.status==='SAFE'?'h-safe':'h-risky'}">${e.status}</span>`; li.onclick=()=>{document.getElementById('ipInput').value=e.ip;checkIP();}; list.appendChild(li); });
+    box.style.display='block';
 }
 
-// 🔥 MAIN FUNCTION
-async function checkIP() {
-
-    // 🔥 Reset all fields visibility
-document.querySelectorAll("#resultBox .card").forEach(el => {
-    el.style.display = "block";
-});
-    console.log("🔥 Triggered");
-    // 🔥 Hide intro text when search starts
-    document.getElementById("introText").style.display = "none";
-
-    let ip = document.getElementById("ipInput").value.trim();
-    let errorBox = document.getElementById("errorMsg");
-
-    errorBox.innerText = "";
-    document.getElementById("resultBox").style.display = "none";
-    document.getElementById("vtBox").style.display = "none";
-
-    if (!ip) {
-        errorBox.innerText = "⚠️ Enter IP";
-        return;
-    }
-
-    if (!isValidIP(ip)) {
-        errorBox.innerText = "❌ Invalid IP format";
-        return;
-    }
-
-    
-
-    // 🔥 PRIVATE BLOCK
-if (isPrivateIP(ip)) {
-
-    document.getElementById("resultBox").style.display = "block";
-    document.getElementById("vtBox").style.display = "none";
-
-    // reset visibility
-    document.querySelectorAll("#resultBox .card").forEach(el => {
-        el.style.display = "none";
-    });
-
-    // show only required
-    document.getElementById("ip").parentElement.style.display = "block";
-    document.getElementById("type").parentElement.style.display = "block";
-    document.getElementById("message").parentElement.style.display = "block";
-    document.getElementById("ranges").parentElement.style.display = "block";
-
-    // values
-    document.getElementById("ip").innerText = ip;
-    document.getElementById("type").innerText = "Private";
-    document.getElementById("message").innerText = `This is private IP ${ip}`;
-    document.getElementById("ranges").innerText =
-        "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
-
-    return;
+/* COPY */
+let copyData='';
+function setCopyData(d){ copyData=d.copy_text||''; }
+function copyResult(){
+    if(!copyData) return;
+    navigator.clipboard.writeText(copyData).then(()=>{ const m=document.getElementById('copy-msg'); m.style.opacity=1; setTimeout(()=>m.style.opacity=0,1500); });
 }
 
+/* PRIVATE */
+function showPrivate(ip){
+    document.getElementById('introText').style.display='none'; document.getElementById('resultsGrid').style.display='grid';
+    const arc=document.getElementById('scoreArc'); arc.style.strokeDashoffset=157.08; arc.style.stroke='var(--muted)';
+    document.getElementById('scoreNum').innerText='0'; document.getElementById('scoreStatus').innerHTML='<span class="badge badge-muted">PRIVATE</span>';
+    document.getElementById('ip').innerText=ip; document.getElementById('status').innerHTML='<span class="badge badge-muted">INTERNAL</span>';
+    ['whitelist','tor'].forEach(id=>document.getElementById(id).innerText='N/A');
+    document.getElementById('country').innerText='Local Network'; document.getElementById('city').innerText='—';
+    document.getElementById('isp').innerText='Internal'; document.getElementById('usage').innerText='Private';
+    document.getElementById('hostname').innerText='—'; document.getElementById('totalReports').innerText='0';
+    ['rowType','rowMessage','rowRanges'].forEach(id=>document.getElementById(id).style.display='flex');
+    document.getElementById('type').innerText='Private / Reserved'; document.getElementById('message').innerText=ip+' is a private/internal IP';
+    document.getElementById('ranges').innerText='10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16';
+    document.getElementById('vpnResults').style.display='none'; document.getElementById('vpnNotChecked').style.display='block';
+    document.getElementById('vtCard').style.display='none';
+}
+
+/* MAIN CHECK */
+async function checkIP(){
+    const ip=document.getElementById('ipInput').value.trim(), err=document.getElementById('errorMsg'), btn=document.getElementById('checkBtn');
+    err.innerText='';
+    if(!ip){ err.innerText='⚠️ Please enter an IP address'; return; }
+    if(!isValidIP(ip)){ err.innerText='❌ Invalid IP format'; return; }
+    btn.innerHTML='<span class="spinner"></span>'; btn.classList.add('loading'); btn.disabled=true;
+    document.getElementById('introText').style.display='none'; document.getElementById('resultsGrid').style.display='none';
+    if(isPrivateIP(ip)){ showPrivate(ip); resetBtn(); return; }
     try {
-        let checkVpn = document.getElementById("vpnCheck").checked;
+        const chkVpn=document.getElementById('vpnCheck').checked;
+        const res=await fetch('/check_ip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip,check_vpn:chkVpn})});
+        let data; try{data=await res.json();}catch{err.innerText='❌ Invalid server response'; resetBtn(); return;}
+        if(!res.ok){ err.innerText=data.error||'Request failed'; resetBtn(); return; }
+        setCopyData(data); renderResult(data,chkVpn); addToHistory(ip,data.risk_score<20?'SAFE':'RISKY');
+        document.getElementById('vpnCheck').checked=false;
+    } catch(e){ err.innerText='❌ Server error. Please try again.'; console.error(e); }
+    resetBtn();
+}
 
-        let res = await fetch("/check_ip", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ 
-                ip: ip,
-                check_vpn: checkVpn
-            })
+function resetBtn(){ const b=document.getElementById('checkBtn'); b.innerHTML='Analyze'; b.classList.remove('loading'); b.disabled=false; }
+
+function renderResult(data,chkVpn){
+    document.getElementById('resultsGrid').style.display='grid';
+    ['rowType','rowMessage','rowRanges'].forEach(id=>document.getElementById(id).style.display='none');
+    animateScore(data.risk_score||0);
+    document.getElementById('ip').innerText=data.ip||'—';
+    const sc=data.risk_score||0;
+    document.getElementById('status').innerHTML=sc<20?'<span class="badge badge-safe">● SAFE</span>':sc<60?'<span class="badge badge-warn">● SUSPICIOUS</span>':'<span class="badge badge-risk">● RISKY</span>';
+    document.getElementById('whitelist').innerText=data.is_whitelisted?'Yes ✓':'No';
+    document.getElementById('tor').innerText=data.is_tor?'⚠️ Yes':'No';
+    document.getElementById('country').innerText=data.country||'—'; document.getElementById('city').innerText=data.city||'—';
+    document.getElementById('isp').innerText=data.isp||'—'; document.getElementById('usage').innerText=data.usage||'—';
+    document.getElementById('hostname').innerText=(data.hostnames&&data.hostnames.length>0)?data.hostnames.join(', '):'No hostname';
+    document.getElementById('totalReports').innerText=data.total_reports??'0';
+    const vpn=data.vpn_data||{};
+    if(chkVpn&&Object.keys(vpn).length>0){
+        document.getElementById('vpnNotChecked').style.display='none'; document.getElementById('vpnResults').style.display='block';
+        document.getElementById('vpn').innerHTML=vpn.vpn?`<span class="badge badge-risk">YES ${'★'.repeat(Math.min(vpn.vpn_score||0,3))}</span>`:'<span class="badge badge-safe">NO</span>';
+        document.getElementById('proxy').innerHTML=vpn.proxy?`<span class="badge badge-risk">YES ${'★'.repeat(Math.min(vpn.proxy_score||0,3))}</span>`:'<span class="badge badge-safe">NO</span>';
+        document.getElementById('fraudScore').innerText=vpn.ipqs?.fraud_score!=null?`${vpn.ipqs.fraud_score}/100`:'—';
+        const fl=document.getElementById('vpnFlags'); fl.innerHTML='';
+        [{label:'VPN',val:vpn.vpn},{label:'Proxy',val:vpn.proxy},{label:'TOR',val:data.is_tor||vpn.tor}].forEach(f=>{
+            const sp=document.createElement('span'); sp.className=`flag ${f.val?'flag-on':'flag-off'}`; sp.innerText=`${f.label}: ${f.val?'YES':'NO'}`; fl.appendChild(sp);
         });
-
-        let data;
-
-        try {
-            data = await res.json();
-        
-        } catch {
-            errorBox.innerText = "Invalid server response ❌";
-                 // 🔥 even on error → reset
-            document.getElementById("vpnCheck").checked = false;
-            return;
-        }
-        // 🔥 after success → reset
-        document.getElementById("vpnCheck").checked = false;
-
-        setCopyData(data);
-        console.log(data.copy_text);
-
-        if (!res.ok) {
-            errorBox.innerText = data.error || "Request failed";
-            return;
-        }
-
-        // ✅ SHOW RESULT
-        document.getElementById("resultBox").style.display = "block";
-
-        document.getElementById("type").parentElement.style.display = "none";
-        document.getElementById("message").parentElement.style.display = "none";
-        document.getElementById("ranges").parentElement.style.display = "none";
-
-        let statusText = (data.risk_score < 20) ? "SAFE" : "RISKY";
-        addToHistory(ip, statusText);
-
-        document.getElementById("ip").innerText = data.ip;
-        document.getElementById("score").innerText = data.risk_score;
-        document.getElementById("country").innerText = data.country;
-        document.getElementById("city").innerText = data.city;
-        document.getElementById("isp").innerText = data.isp;
-
-        document.getElementById("hostname").innerText =
-            (data.hostnames && data.hostnames.length > 0)
-            ? data.hostnames.join(", ")
-            : "No Hostname";
-
-        document.getElementById("usage").innerText = data.usage || "N/A";
-
-        // 🔥 VPN DATA
-        let vpnData = data.vpn_data || {};
-
-        console.log("VPN DATA:", vpnData);
-
-        let vpnStars = getStars(vpnData.vpn_score || 0);
-        let proxyStars = getStars(vpnData.proxy_score || 0);
-        let torStars = getStars(vpnData.tor_score || 0);
-
-        // ✅ CLEAN OUTPUT FIX
-        document.getElementById("vpn").innerText =
-            vpnData.vpn ? "Yes " + vpnStars : "No";
-
-        document.getElementById("proxy").innerText =
-            vpnData.proxy ? "Yes " + proxyStars : "No";
-
-        // 🔥 TOR (combine both sources)
-        let torFinal = data.is_tor || vpnData.tor;
-
-        document.getElementById("tor").innerText =
-            torFinal ? "Yes " + torStars : "No";
-
-        // Whitelist
-        document.getElementById("whitelist").innerText =
-            data.is_whitelisted ? "Yes" : "No";
-
-        // Status badge
-        let status = document.getElementById("status");
-
-        if (data.risk_score < 20) {
-            status.innerText = "SAFE";
-            status.className = "badge safe";
-        } else {
-            status.innerText = "RISKY";
-            status.className = "badge risk";
-        }
-
-        
-        // ✅ VT BLOCK
-        if (data.vt) {
-
-            document.getElementById("vtBox").style.display = "block";
-
-            document.getElementById("vt_ip").innerText = data.ip;
-            document.getElementById("vt_score").innerText =
-                `${data.vt.flagged_total}/${data.vt.total}`;
-
-            let vtStatus = document.getElementById("vt_status");
-
-            if (data.vt.flagged_total === 0) {
-                vtStatus.innerText = "SAFE";
-                vtStatus.className = "safe-text";
-            } else if (data.vt.flagged_total < 3) {
-                vtStatus.innerText = "SUSPICIOUS";
-                vtStatus.className = "suspicious";
-            } else {
-                vtStatus.innerText = "MALICIOUS";
-                vtStatus.className = "malicious";
-            }
-
-            let list = document.getElementById("vt_flagged");
-            list.innerHTML = "";
-
-            if (data.vt.vendors && data.vt.vendors.length > 0) {
-                data.vt.vendors.forEach(v => {
-                    let li = document.createElement("li");
-                    li.innerText = v;
-                    list.appendChild(li);
-                });
-            } else {
-                list.innerHTML = "<li>None</li>";
-            }
-        }
-
-    } catch (err) {
-        console.error("🔥 ERROR:", err);
-        errorBox.innerText = "Server Error";
-    }
+    } else { document.getElementById('vpnNotChecked').style.display='block'; document.getElementById('vpnResults').style.display='none'; }
+    if(data.vt){
+        document.getElementById('vtCard').style.display='block';
+        document.getElementById('vt_score').innerText=`${data.vt.flagged_total} / ${data.vt.total} engines`;
+        document.getElementById('vt_status').innerHTML=data.vt.flagged_total===0?'<span class="badge badge-safe">CLEAN</span>':data.vt.flagged_total<3?'<span class="badge badge-warn">SUSPICIOUS</span>':'<span class="badge badge-risk">MALICIOUS</span>';
+        const vendors=document.getElementById('vt_flagged'); vendors.innerHTML='';
+        if(data.vt.vendors&&data.vt.vendors.length>0){ data.vt.vendors.forEach(v=>{const t=document.createElement('span');t.className='vendor-tag';t.innerText=v;vendors.appendChild(t);}); }
+        else { vendors.innerHTML='<span style="color:var(--green);font-size:12px;">No vendors flagged ✓</span>'; }
+    } else { document.getElementById('vtCard').style.display='none'; }
 }
 
-// 🔹 HISTORY
-let history = [];
-
-function addToHistory(ip, status) {
-
-    let entry = `${ip} (${status})`;
-
-    if (history.includes(entry)) return;
-
-    history.unshift(entry);
-
-    if (history.length > 5) {
-        history.pop();
-    }
-
-    let list = document.getElementById("historyList");
-    list.innerHTML = "";
-
-    // 🔥 SHOW / HIDE FIX
-    let box = document.getElementById("historyBox");
-        if (history.length === 0) {
-            box.style.display = "none";
-        } else {
-            box.style.display = "block";
-        }
-    history.forEach(item => {
-        let li = document.createElement("li");
-        li.innerText = item;
-        list.appendChild(li);
-    });
-}
-
-// 🔥 Show intro text on page load
-window.onload = function () {
-    const intro = document.getElementById("introText");
-    if (intro) {
-        intro.style.display = "block";
-    }
-};
-document.getElementById("ipInput").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-        document.getElementById("introText").style.display = "none";
-    }
-});
-
-
-window.addEventListener("load", function() {
-    document.getElementById("vpnCheck").checked = false;
-});
-
+document.addEventListener('DOMContentLoaded',()=>{ document.getElementById('ipInput').addEventListener('keypress',e=>{if(e.key==='Enter')checkIP();}); document.getElementById('vpnCheck').checked=false; });
+window.onload=()=>{ document.getElementById('introText').style.display='block'; };
 </script>
-
-<script>
-let copyData = "";
-
-function setCopyData(data) {
-    copyData = data.copy_text;
-}
-
-function copyResult() {
-    navigator.clipboard.writeText(copyData)
-        .then(() => {
-            const msg = document.getElementById("copy-msg");
-            msg.innerText = "Copied ✅";
-            msg.style.opacity = 1;
-
-            setTimeout(() => {
-                msg.style.opacity = 0;
-            }, 1500);
-        })
-        .catch(err => {
-            console.error("Copy failed:", err);
-        });
-}
-</script>
-</div>
-<footer class="footer">
-    <p>© 2026 IP Reputation Checker | Built by Softwarewalla</p>
-    <p>Data Sources: Public Threat Intel</p>
-</footer>
-
 </body>
 </html>

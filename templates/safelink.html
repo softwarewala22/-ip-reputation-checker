@@ -1,152 +1,118 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SafeLink Remover</title>
-    <style>
-        body {
-            background:#0f172a;
-            color:white;
-            font-family:Arial;
-            text-align:center;
-            padding:40px;
-        }
-
-        .box {
-            width:700px;
-            max-width:90%;
-            margin:auto;
-            background:#1e293b;
-            padding:20px;
-            border-radius:10px;
-        }
-        * {
-    box-sizing: border-box;
-}
-
-        textarea {
-            width:100%;
-            padding:12px;
-            border-radius:8px;
-            margin-top:10px;
-            word-break: break-all;
-        }
-
-        button {
-            margin-top:10px;
-            padding:10px 15px;
-            background:#22c55e;
-            border:none;
-            border-radius:6px;
-            cursor:pointer;
-        }
-
-        .clear {
-            background:#ef4444;
-        }
-
-        button {
-    margin-top: 10px;
-    padding: 10px 16px;
-    background: #22c55e;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    color: white;
-    font-weight: 500;
-
-    transition: all 0.2s ease;
-}
-
-/* 🔥 HOVER EFFECT */
-button:hover {
-    background: #16a34a;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-
-/* 🔥 CLICK (PRESS) EFFECT */
-button:active {
-    transform: scale(0.95);
-    box-shadow: none;
-}
-.clear {
-    background: #ef4444;
-}
-
-.clear:hover {
-    background: #dc2626;
-}
-.copy-btn {
-    background: #334155;
-}
-
-.copy-btn:hover {
-    background: #475569;
-}
-
-textarea:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px #22c55e;
-}
-
-a {
-    color: #909417;   /* 🔥 apna color choose kar */
-    text-decoration: none;
-}
-
-a:hover {
-    color: #0ea5e9;
-}
-
-a:visited {
-    color: #94aa1a;   /* purple hatane ke liye */
-}
-    </style>
+<title>SafeLink Remover — IPSentinel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e1623;--surface:#162035;--card:#1a2840;--border:#243552;--text:#dde8f8;--muted:#6b8ab5;--accent:#3b82f6;--accent2:#06b6d4;--green:#10b981;--red:#ef4444;--mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;--sw:220px;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:var(--sw);background:#0a1120;border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200;transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 20px rgba(0,0,0,.3);}
+.sidebar.pinned{transform:translateX(0);}.sidebar.hidden{transform:translateX(calc(-1 * var(--sw)));}
+.sb-header{display:flex;align-items:center;justify-content:space-between;padding:17px 14px 13px;border-bottom:1px solid var(--border);}
+.sb-brand{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.04em;display:flex;align-items:center;gap:7px;}
+.sb-brand::before{content:'';width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 7px var(--green);animation:dot 2s infinite;}
+@keyframes dot{0%,100%{opacity:1}50%{opacity:.35}}
+.pin-btn{background:none;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0;}
+.pin-btn:hover{border-color:var(--accent);color:var(--accent);}.pin-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.1);}
+.sb-nav{flex:1;padding:10px 9px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:all .18s;border:1px solid transparent;}
+.nav-item:hover{background:var(--card);color:var(--text);border-color:var(--border);}
+.nav-item.active{background:rgba(59,130,246,.12);color:var(--accent);border-color:rgba(59,130,246,.25);}
+.sb-footer{padding:13px 14px;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--muted);}
+.sb-footer span{color:var(--accent2);}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199;}
+.sb-overlay.show{display:block;}
+.sb-tab{position:fixed;top:50%;left:0;transform:translateY(-50%);z-index:198;background:var(--card);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;color:var(--muted);width:26px;height:50px;cursor:pointer;font-size:15px;display:none;align-items:center;justify-content:center;transition:color .2s,border-color .2s;}
+.sb-tab:hover{color:var(--accent);border-color:var(--accent);}.sb-tab.vis{display:flex;}
+.page-wrap{display:flex;flex-direction:column;flex:1;transition:margin-left .28s cubic-bezier(.4,0,.2,1);}
+.page-wrap.shifted{margin-left:var(--sw);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border:none;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;text-decoration:none;line-height:1;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#2563eb;transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,.3);}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border);}.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn-danger{background:var(--red);color:#fff;}.btn-danger:hover{background:#dc2626;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);padding:7px 12px;font-size:12px;}.btn-ghost:hover{border-color:var(--accent2);color:var(--accent2);}
+.main{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;align-items:center;padding:44px 22px 60px;}
+.page-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--accent);background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);padding:4px 12px;border-radius:20px;margin-bottom:12px;}
+h1{font-family:var(--mono);font-size:26px;color:#fff;margin-bottom:7px;}
+.sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;width:100%;max-width:580px;box-shadow:0 2px 28px rgba(0,0,0,.18);}
+textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-family:var(--mono);font-size:13px;padding:11px 13px;outline:none;resize:vertical;transition:border-color .2s;word-break:break-all;}
+textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+textarea::placeholder{color:var(--muted);}
+.btn-row{display:flex;gap:8px;margin-top:10px;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;width:100%;max-width:580px;margin-top:16px;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.result-card h3{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:7px;}
+.result-card h3::after{content:'';flex:1;height:1px;background:var(--border);}
+footer{position:relative;z-index:10;border-top:1px solid var(--border);padding:12px 22px;background:rgba(14,22,35,.92);display:flex;justify-content:space-between;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:8px;}
+@media(max-width:700px){.page-wrap.shifted{margin-left:0}}
+</style>
 </head>
 <body>
-
-<div class="box">
-    <h2>🛡 SafeLink Remover</h2>
-
-    <form method="POST" id="decodeForm">
-        <textarea name="input_url" rows="2"
-        placeholder="Paste Defender SafeLink here">{{ input_url }}</textarea>
-        <br>
-        <button type="submit">Clean</button>
-        <button type="button" class="clear" onclick="clearAll()">Clear</button>
-    </form>
-
-    {% if cleaned_url %}
-    <div id="resultBox">
-        <h3>Original URL:</h3>
-        <textarea id="result" rows="3">{{ cleaned_url }}</textarea>
-        <button onclick="copy()" class="copy-btn">⧉ Copy</button>
+<div id="sidebar" class="sidebar pinned">
+    <div class="sb-header">
+        <span class="sb-brand">IPSentinel</span>
+        <button class="pin-btn on" id="pinBtn" onclick="togglePin()" title="Pin/Unpin sidebar">📌</button>
     </div>
-    {% endif %}
+    <nav class="sb-nav">
+        <a href="/" class="nav-item"><span>🔍</span><span>IP Checker</span></a>
+        <a href="/url-decoder" class="nav-item"><span>🔓</span><span>URL Decoder</span></a>
+        <a href="/safelink-remover" class="nav-item active"><span>🛡</span><span>SafeLink Remover</span></a>
+        <a href="/domain-age" class="nav-item"><span>🌐</span><span>Domain Age</span></a>
+    </nav>
+    <div class="sb-footer">Your IP: <span id="sidebarIP">—</span></div>
+</div>
+<div id="sbOverlay" class="sb-overlay" onclick="closeSidebar()"></div>
+<button class="sb-tab" id="sbTab" onclick="openSidebar()">☰</button>
 
-    <a href="/">⬅ Back</a>
+<div class="page-wrap shifted" id="pageWrap">
+    <main class="main">
+        <div class="page-tag">URL TOOLS</div>
+        <h1>🛡 SafeLink Remover</h1>
+        <p class="sub">Strip Microsoft Defender SafeLinks to reveal the original URL</p>
+
+        <div class="form-card">
+            <form method="POST" id="decodeForm">
+                <textarea name="input_url" rows="3" placeholder="Paste Defender SafeLink URL here…">{{ input_url }}</textarea>
+                <div class="btn-row">
+                    <button type="submit" class="btn btn-primary">Clean URL</button>
+                    <button type="button" class="btn btn-danger" onclick="clearAll()">Clear</button>
+                </div>
+            </form>
+        </div>
+
+        {% if cleaned_url %}
+        <div class="result-card" id="resultBox">
+            <h3>✓ Original URL</h3>
+            <textarea id="result" rows="3">{{ cleaned_url }}</textarea>
+            <div class="btn-row" style="margin-top:8px;">
+                <button onclick="copy()" class="btn btn-ghost">⧉ Copy URL</button>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+    <footer><span>© 2026 IPSentinel</span><span>SafeLink Remover</span></footer>
 </div>
 
 <script>
-function copy(){
-    let text = document.getElementById("result").value;
-    navigator.clipboard.writeText(text);
+let pinned=true;
+function togglePin(){pinned=!pinned;applyPin();localStorage.setItem('sbPin',pinned);}
+function applyPin(){
+    const sb=document.getElementById('sidebar'),wrap=document.getElementById('pageWrap'),btn=document.getElementById('pinBtn'),tab=document.getElementById('sbTab');
+    if(pinned){sb.classList.remove('hidden');sb.classList.add('pinned');wrap.classList.add('shifted');btn.classList.add('on');tab.classList.remove('vis');document.getElementById('sbOverlay').classList.remove('show');}
+    else{sb.classList.add('hidden');sb.classList.remove('pinned');wrap.classList.remove('shifted');btn.classList.remove('on');tab.classList.add('vis');}
 }
-
-function clearAll(){
-    document.querySelector('[name="input_url"]').value = "";
-    document.getElementById("resultBox")?.remove();
-}
-</script>
-
-
-<script>
-document.querySelector('[name="input_url"]').addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();   // textarea new line prevent
-        document.getElementById("decodeForm").submit();
-    }
-});
+function openSidebar(){document.getElementById('sidebar').classList.remove('hidden');if(!pinned)document.getElementById('sbOverlay').classList.add('show');}
+function closeSidebar(){if(!pinned){document.getElementById('sidebar').classList.add('hidden');document.getElementById('sbOverlay').classList.remove('show');}}
+window.addEventListener('DOMContentLoaded',()=>{const s=localStorage.getItem('sbPin');if(s!==null)pinned=s==='true';applyPin();});
+fetch("https://api.ipify.org?format=json").then(r=>r.json()).then(d=>{document.getElementById('sidebarIP').innerText=d.ip;}).catch(()=>{});
+function copy(){navigator.clipboard.writeText(document.getElementById('result').value);}
+function clearAll(){document.querySelector('[name="input_url"]').value='';document.getElementById('resultBox')?.remove();}
+document.querySelector('[name="input_url"]').addEventListener('keypress',function(e){if(e.key==='Enter'){e.preventDefault();document.getElementById('decodeForm').submit();}});
 </script>
 </body>
 </html>
