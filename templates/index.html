@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>IPSentinel — IP Reputation Checker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPIntel.tech — IP Reputation Checker</title>
+    <link rel="icon" href="{{ url_for('static', filename='final_clean_32.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -56,12 +56,23 @@
         /* ── TOPBAR — brand lives here ── */
         .topbar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:52px;background:rgba(9,15,29,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(14px);}
 
-        .topbar-brand{display:flex;align-items:center;gap:11px;}
-        .brand-icon{width:32px;height:32px;background:linear-gradient(135deg,#1d3a6e 0%,#2563eb 100%);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 12px rgba(59,130,246,.35);flex-shrink:0;}
-        .brand-text{font-family:var(--mono);font-size:14px;font-weight:700;color:#fff;letter-spacing:.03em;}
+        .topbar-brand{display:flex;align-items:center;gap:10px;}
+.brand-icon{
+    width:50px;
+    height:50px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:visible;   /* VERY IMPORTANT */
+}        .brand-text{font-family:var(--mono);font-size:14px;font-weight:700;color:#fff;letter-spacing:.03em;}
         .brand-text span{color:var(--accent2);}
+        .brand-text{
+    line-height:1.2;
+}
+        
         .brand-status{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:1px;}
         .brand-status::before{content:'';width:5px;height:5px;background:var(--green);border-radius:50%;box-shadow:0 0 5px var(--green);animation:dot 2.2s infinite;}
+  
 
         .topbar-right{display:flex;align-items:center;gap:10px;}
         .topbar-ip{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--card);padding:5px 11px;border-radius:20px;border:1px solid var(--border);display:flex;align-items:center;gap:5px;}
@@ -147,7 +158,28 @@
         footer{position:relative;z-index:10;border-top:1px solid var(--border);padding:11px 22px;background:rgba(9,15,29,.95);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:8px;}
 
         @media(max-width:700px){.results-grid{grid-template-columns:1fr}.page-wrap.shifted{margin-left:0}}
-    </style>
+    
+        .logo-wrap{position:relative;width:65px;height:65px;flex-shrink:0;}
+.logo-shield{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+     
+    transform-origin: left center;
+}
+        .logo-ring{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:100%;
+    height:100%;
+}
+        .ring-el{transform-box:fill-box;transform-origin:center;animation:ringRotate 2s linear infinite;}
+        @keyframes ringRotate{0%{stroke-dasharray:50 120;stroke-dashoffset:0;}50%{stroke-dasharray:20 150;stroke-dashoffset:-80;}100%{stroke-dasharray:50 120;stroke-dashoffset:-170;}}
+        .topbar-logo{display:flex;align-items:center;gap:14px;}
+        </style>
 </head>
 <body>
 
@@ -183,13 +215,26 @@
 
     <!-- TOPBAR — brand here -->
     <header class="topbar">
-        <div class="topbar-brand">
-            <div class="brand-icon">🛡</div>
+        <a href="/" class="topbar-logo">
+            <span class="logo-wrap">
+            <img class="logo-shield" src="{{ url_for('static', filename='logo.png') }}">                
+            <svg class="logo-ring" width="56" height="28" viewBox="0 0 56 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse class="ring-el" cx="28" cy="14" rx="27" ry="8" stroke="url(#rg)" stroke-width="2.5" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="rg" x1="0" y1="0" x2="56" y2="0" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#ff2200" stop-opacity="0"/>
+                            <stop offset="35%" stop-color="#ff4422" stop-opacity="1"/>
+                            <stop offset="65%" stop-color="#ff6600" stop-opacity="1"/>
+                            <stop offset="100%" stop-color="#ff2200" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </span>
             <div>
-                <div class="brand-text">IP<span>Sentinel</span></div>
+                <div class="brand-text">IP<span>Intel</span></div>
                 <div class="brand-status">Systems Operational</div>
             </div>
-        </div>
+        </a>
         <div class="topbar-right">
             <span class="topbar-badge">LIVE INTEL</span>
             <div class="topbar-ip">Your IP: <span id="myIP">—</span></div>
@@ -200,7 +245,7 @@
         <div class="hero">
             <div class="hero-tag">THREAT INTELLIGENCE</div>
             <h1>IP <span>Reputation</span> Scanner</h1>
-            <p class="hero-sub">Real-time analysis via AbuseIPDB, VirusTotal & VPN detection</p>
+            <p class="hero-sub">Real-time analysis powered by public threat intelligence</p>
         </div>
 
         <div class="search-wrap">
@@ -281,8 +326,8 @@
     </main>
 
     <footer>
-        <span>© 2026 IPSentinel — Built by Softwarewalla</span>
-        <span>AbuseIPDB · VirusTotal · ProxyCheck · IPQS</span>
+        <span>© 2026 IPIntel — Built by Softwarewalla</span>
+        <span>Multi-source threat intelligence platform</span>
     </footer>
 </div>
 
