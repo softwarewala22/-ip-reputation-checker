@@ -12,6 +12,7 @@ from db_ops import cleanup_old_data
 from routes.url_decoder import url_decoder_bp
 from routes.safelink import safelink_bp
 from routes.domain_age import domain_age_bp
+from routes.email_header import email_header_bp
 
 # 🔥 Load env first
 load_dotenv()
@@ -33,6 +34,7 @@ app = Flask(__name__)
 app.register_blueprint(url_decoder_bp)
 app.register_blueprint(safelink_bp)
 app.register_blueprint(domain_age_bp)
+app.register_blueprint(email_header_bp)
 # 🔥 Create tables
 create_table()
 

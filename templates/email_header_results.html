@@ -1,0 +1,82 @@
+<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+    Basic Information
+</div>
+
+<div class="info-card">
+    <div class="field-row"><span class="field-label">Sender Display Name</span><span class="field-value">{{ parsed.from_name }}</span></div>
+    <div class="field-row"><span class="field-label">Sender Address</span><span class="field-value mono">{{ parsed.from_email }}</span></div>
+    <div class="field-row"><span class="field-label">Recipient</span><span class="field-value">{{ parsed.to }}</span></div>
+    <div class="field-row"><span class="field-label">Reply To</span><span class="field-value {% if not parsed.reply_to %}muted{% endif %}">{{ parsed.reply_to or 'Not specified' }}</span></div>
+    <div class="field-row"><span class="field-label">Return Path</span><span class="field-value mono {% if not parsed.return_path %}muted{% endif %}">{{ parsed.return_path or 'Not available' }}</span></div>
+    <div class="field-row"><span class="field-label">Date</span><span class="field-value">{{ parsed.date }}</span></div>
+    <div class="field-row"><span class="field-label">Subject</span><span class="field-value">{{ parsed.subject }}</span></div>
+    {% if parsed.sender_ip %}
+    <div class="field-row"><span class="field-label">Sender IP</span><span class="field-value"><span class="ip-chip" data-ip="{{ parsed.sender_ip }}">{{ parsed.sender_ip }}</span></span></div>
+    {% endif %}
+</div>
+
+<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Authentication Results
+</div>
+
+<div class="info-card">
+    <div class="auth-grid">
+        <div class="auth-item">
+            <div class="auth-label">SPF</div>
+            <div class="auth-value {% if parsed.spf == 'pass' %}auth-pass{% elif parsed.spf == 'fail' %}auth-fail{% else %}auth-none{% endif %}">{{ parsed.spf or 'N/A' }}</div>
+        </div>
+        <div class="auth-item">
+            <div class="auth-label">DKIM</div>
+            <div class="auth-value {% if parsed.dkim == 'pass' %}auth-pass{% elif parsed.dkim == 'fail' %}auth-fail{% else %}auth-none{% endif %}">{{ parsed.dkim or 'N/A' }}</div>
+        </div>
+        <div class="auth-item">
+            <div class="auth-label">DMARC</div>
+            <div class="auth-value {% if parsed.dmarc == 'pass' %}auth-pass{% elif parsed.dmarc == 'fail' %}auth-fail{% else %}auth-none{% endif %}">{{ parsed.dmarc or 'N/A' }}</div>
+        </div>
+    </div>
+    <div style="margin-top:16px;">
+        <span class="risk-badge {% if parsed.risk_level == 'Low' %}risk-low{% elif parsed.risk_level == 'Medium' %}risk-medium{% else %}risk-high{% endif %}">
+            Risk Level: {{ parsed.risk_level }}
+        </span>
+    </div>
+    {% if parsed.suspicious_signs %}
+    <div class="warning-box">
+        <div class="warning-title">⚠️ Suspicious Signs Detected</div>
+        <ul class="warning-list">
+        {% for sign in parsed.suspicious_signs %}
+            <li>{{ sign }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+{% if parsed.ip_info %}
+<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    IPs Found (click to analyze)
+</div>
+<div class="info-card">
+    <div class="ip-list">
+    {% for ip in parsed.ip_info %}
+        <span class="ip-chip" data-ip="{{ ip }}">{{ ip }}</span>
+    {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if parsed.received_chain %}
+<div class="section-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Email Path (Received Chain)
+</div>
+<div class="info-card">
+    {% for server in parsed.received_chain %}
+    <div class="path-item"><span class="path-num">{{ loop.index }}</span>{{ server }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div id="ipAnalysisPanel"></div>

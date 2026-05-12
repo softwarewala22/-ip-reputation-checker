@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Email Header Analyzer — IPIntel.tech</title>
+<link rel="icon" href="{{ url_for('static', filename='final_clean_32.png') }}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── EXACT SITE THEME (Paytm Navy) ── */
+:root{
+    --bg:#00091a; --surface:#001433; --card:#001f4d; --border:#003380;
+    --text:#ffffff; --muted:#7ba3cc; --accent:#00b9f1; --accent2:#00d4ff;
+    --green:#00e676; --red:#ff5252; --orange:#ffab40; --yellow:#ffd740;
+    --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif; --sw:210px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:subpixel-antialiased;text-rendering:optimizeLegibility;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(0,185,241,.1) 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 100% 80%,rgba(0,51,128,.2) 0%,transparent 60%);pointer-events:none;z-index:0;}
+
+/* ── SIDEBAR (identical to all other pages) ── */
+.sidebar{position:fixed;top:0;left:0;height:100vh;width:var(--sw);background:#000d26;border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200;transition:transform .26s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.6);}
+.sidebar.pinned{transform:translateX(0);}.sidebar.hidden{transform:translateX(calc(-1 * var(--sw)));}
+.sb-top{display:flex;align-items:center;justify-content:space-between;padding:14px 12px 10px;}
+.pin-btn{background:none;border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .18s;padding:0;line-height:1;}
+.pin-btn:hover{border-color:var(--accent);color:var(--accent);}.pin-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(0,185,241,.12);}
+.sb-section-label{padding:6px 14px 4px;font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;opacity:.8;}
+.sb-nav{flex:1;padding:4px 8px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:all .17s;border:1px solid transparent;}
+.nav-item:hover{background:var(--card);color:#fff;border-color:var(--border);}
+.nav-item.active{background:rgba(0,185,241,.15);color:var(--accent);border-color:rgba(0,185,241,.35);}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+.sb-footer{padding:12px 14px;border-top:1px solid var(--border);}
+.sb-ip-chip{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.sb-ip-chip::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:dot 2.2s infinite;flex-shrink:0;}
+@keyframes dot{0%,100%{opacity:1}50%{opacity:.25}}
+.sb-ip-chip span{color:var(--accent2);font-weight:600;}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:199;}
+.sb-overlay.show{display:block;}
+.sb-tab{position:fixed;top:50%;left:0;transform:translateY(-50%);z-index:198;background:var(--card);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;color:var(--muted);width:24px;height:48px;cursor:pointer;font-size:14px;display:none;align-items:center;justify-content:center;transition:all .18s;}
+.sb-tab:hover{color:var(--accent);border-color:var(--accent);}.sb-tab.vis{display:flex;}
+
+/* ── LAYOUT ── */
+.page-wrap{display:flex;flex-direction:column;flex:1;transition:margin-left .26s cubic-bezier(.4,0,.2,1);}
+.page-wrap.shifted{margin-left:var(--sw);}
+
+/* ── TOPBAR (identical to all other pages) ── */
+.topbar{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 22px;height:56px;background:linear-gradient(90deg,#000d26 0%,#001433 100%);border-bottom:1px solid var(--border);}
+.topbar-brand,.topbar-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.brand-icon{width:50px;height:50px;display:flex;align-items:center;justify-content:center;overflow:visible;}
+.logo-wrap{position:relative;width:65px;height:65px;flex-shrink:0;}
+.logo-shield{width:100%;height:100%;object-fit:contain;display:block;transform-origin:left center;}
+
+
+50%{stroke-dasharray:20 150;stroke-dashoffset:-80;}100%{stroke-dasharray:50 120;stroke-dashoffset:-170;}}
+.brand-text{font-family:var(--mono);font-size:15px;font-weight:700;color:#fff;letter-spacing:.02em;line-height:1.2;}
+.brand-text span{color:var(--accent);}
+.brand-status{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;}
+.brand-status::before{content:'';width:5px;height:5px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);animation:dot 2.2s infinite;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.topbar-ip{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--card);padding:5px 12px;border-radius:20px;border:1px solid var(--border);display:flex;align-items:center;gap:5px;}
+.topbar-ip span{color:var(--accent2);font-weight:600;}
+.topbar-badge{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--accent);background:rgba(0,185,241,.1);border:1px solid rgba(0,185,241,.3);padding:4px 10px;border-radius:20px;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:9px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .17s;white-space:nowrap;text-decoration:none;line-height:1;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--accent);color:#00091a;font-weight:700;}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,185,241,.4);}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);padding:7px 13px;font-size:12px;}
+.btn-ghost:hover{border-color:var(--accent2);color:var(--accent2);}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,9,26,.3);border-top-color:#00091a;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MAIN ── */
+.main{position:relative;z-index:1;flex:1;padding:26px 22px 56px;}
+.page-header{margin-bottom:22px;}
+.page-tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--accent);background:rgba(0,185,241,.1);border:1px solid rgba(0,185,241,.3);padding:4px 14px;border-radius:20px;margin-bottom:9px;}
+.page-title{font-family:var(--mono);font-size:22px;font-weight:700;color:#fff;margin-bottom:4px;}
+.page-title span{color:var(--accent);}
+.page-sub{color:var(--muted);font-size:13px;line-height:1.6;}
+
+/* ── INPUT AREA ── */
+.input-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 4px 32px rgba(0,0,0,.4);}
+.input-label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+
+/* Drop zone */
+.drop-zone{width:100%;background:rgba(0,9,26,.6);border:2px dashed var(--border);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;cursor:pointer;padding:18px;text-align:center;transition:all .2s;margin-bottom:14px;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(0,185,241,.06);}
+.drop-zone-icon{font-size:22px;}
+.drop-zone-text{font-size:13px;color:var(--muted);}
+.drop-zone-hint{font-size:11px;color:var(--muted);opacity:.6;}
+
+.header-textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;color:#ffffff;font-family:var(--mono);font-size:12px;line-height:1.75;padding:13px 15px;outline:none;resize:vertical;min-height:140px;transition:border-color .2s;letter-spacing:.01em;}
+.header-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,185,241,.12);}
+.header-textarea::placeholder{color:var(--muted);}
+
+.input-actions{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap;}
+.sample-btn{font-size:12px;color:var(--muted);background:none;border:1px dashed var(--border);border-radius:6px;padding:6px 12px;cursor:pointer;font-family:var(--mono);transition:all .18s;}
+.sample-btn:hover{color:var(--accent);border-color:var(--accent);}
+.clear-lnk{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--mono);padding:0;transition:color .18s;margin-left:4px;}
+.clear-lnk:hover{color:var(--red);}
+.error-msg{color:var(--red);font-size:12px;font-family:var(--mono);font-weight:600;width:100%;margin-top:2px;}
+
+/* ── DASHBOARD ── */
+.dashboard{display:none;animation:fadeUp .35s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Score banner */
+.score-banner{display:flex;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:16px;}
+.score-gauge{position:relative;width:72px;height:72px;flex-shrink:0;}
+.score-gauge svg{transform:rotate(-90deg);}
+.gauge-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:18px;font-weight:700;}
+.score-info h4{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
+.verdict{font-family:var(--mono);font-size:20px;font-weight:700;}
+.verdict.ok{color:var(--green);}
+.verdict.info{color:var(--yellow);}
+.verdict.warn{color:var(--orange);}
+.verdict.danger{color:var(--red);}
+.stat-pill{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;min-width:76px;}
+.stat-pill .val{font-family:var(--mono);font-size:16px;font-weight:700;color:#fff;display:block;}
+.stat-pill .lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;margin-top:2px;display:block;text-transform:uppercase;}
+.stat-pill.ok .val{color:var(--green);}
+.stat-pill.warn .val{color:var(--orange);}
+.stat-pill.danger .val{color:var(--red);}
+
+/* Grid layouts */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 17px;transition:border-color .2s;}
+.card:hover{border-color:rgba(0,185,241,.22);}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:7px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Fields */
+.field{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(0,51,128,.4);gap:12px;}
+.field:last-child{border-bottom:none;}
+.field-lbl{color:var(--muted);font-size:12px;font-weight:500;flex-shrink:0;margin-right:10px;padding-top:1px;}
+.field-val{font-family:var(--mono);font-size:12px;color:#ffffff;text-align:left;word-break:break-word;font-weight:400;flex:1;}
+.field-val.dim{color:var(--muted);font-weight:400;}
+
+/* Auth badges */
+.auth-row{display:flex;gap:8px;margin-bottom:6px;}
+.auth-badge{display:flex;flex-direction:column;align-items:center;padding:10px 12px;border-radius:9px;border:1px solid;flex:1;min-width:68px;}
+.auth-badge .proto{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-bottom:5px;font-weight:700;text-transform:uppercase;}
+.auth-badge .res{font-family:var(--mono);font-size:13px;font-weight:700;text-transform:uppercase;}
+.auth-badge.pass{background:rgba(0,230,118,.1);border-color:rgba(0,230,118,.3);color:var(--green);}
+.auth-badge.fail,.auth-badge.hardfail,.auth-badge.permerror,.auth-badge.reject{background:rgba(255,82,82,.1);border-color:rgba(255,82,82,.3);color:var(--red);}
+.auth-badge.softfail,.auth-badge.neutral,.auth-badge.quarantine{background:rgba(255,171,64,.1);border-color:rgba(255,171,64,.3);color:var(--orange);}
+.auth-badge.none,.auth-badge.missing{background:rgba(123,163,204,.08);border-color:var(--border);color:var(--muted);}
+
+/* Signals */
+.signal-list{display:flex;flex-direction:column;gap:6px;}
+.signal{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid;}
+.signal.ok{background:rgba(0,230,118,.06);border-color:rgba(0,230,118,.18);}
+.signal.warn{background:rgba(255,171,64,.06);border-color:rgba(255,171,64,.18);}
+.signal.danger{background:rgba(255,82,82,.07);border-color:rgba(255,82,82,.2);}
+.signal.info{background:rgba(0,185,241,.05);border-color:rgba(0,185,241,.15);}
+.sig-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.signal.ok .sig-dot{background:var(--green);box-shadow:0 0 6px var(--green);}
+.signal.warn .sig-dot{background:var(--orange);box-shadow:0 0 6px var(--orange);}
+.signal.danger .sig-dot{background:var(--red);box-shadow:0 0 6px var(--red);}
+.signal.info .sig-dot{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.sig-label{font-family:var(--mono);font-size:12px;font-weight:700;margin-bottom:2px;}
+.signal.ok .sig-label{color:var(--green);}
+.signal.warn .sig-label{color:var(--orange);}
+.signal.danger .sig-label{color:var(--red);}
+.signal.info .sig-label{color:var(--accent);}
+.sig-detail{font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* Hop table */
+.hop-table{width:100%;border-collapse:collapse;font-size:12px;}
+.hop-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;padding:6px 9px;border-bottom:1px solid var(--border);text-align:left;font-weight:700;}
+.hop-table td{padding:8px 9px;border-bottom:1px solid rgba(0,51,128,.25);font-family:var(--mono);color:#ffffff;font-size:11px;vertical-align:top;}
+.hop-table tr:last-child td{border-bottom:none;}
+.hop-table tr:hover td{background:rgba(0,31,77,.35);}
+.hop-n{font-weight:700;color:var(--accent);}
+.hop-ip{color:var(--accent2);}
+.hop-host{color:var(--muted);}
+.hop-ts{color:var(--muted);font-size:10px;}
+.ip-type{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+.ip-type.public{background:rgba(0,185,241,.12);color:var(--accent);border:1px solid rgba(0,185,241,.25);}
+.ip-type.private{background:rgba(255,171,64,.1);color:var(--orange);border:1px solid rgba(255,171,64,.2);}
+.ip-type.loopback{background:rgba(123,163,204,.1);color:var(--muted);border:1px solid var(--border);}
+
+/* Clickable IP chips */
+.ip-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;background:rgba(0,185,241,.1);color:var(--accent);border:1px solid rgba(0,185,241,.25);transition:all .17s;margin:3px 4px 3px 0;}
+.ip-chip:hover{background:var(--accent);color:#00091a;}
+
+/* DKIM block */
+.dkim-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:7px;}
+.dkim-block:last-child{margin-bottom:0;}
+.dkim-dom{color:var(--accent2);font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:3px;}
+.dkim-meta{color:var(--muted);font-family:var(--mono);font-size:11px;}
+
+/* IP analysis panel */
+.ip-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-top:14px;display:none;}
+.ip-panel.show{display:block;animation:fadeUp .3s ease;}
+.ip-panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.ip-panel-title{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;}
+.ip-panel-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 6px;transition:color .18s;}
+.ip-panel-close:hover{color:var(--red);}
+
+
+
+
+.badge-ok{display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:700;font-family:var(--mono);}
+.badge-safe{background:rgba(0,230,118,.12);color:var(--green);border:1px solid rgba(0,230,118,.25);}
+.badge-risk{background:rgba(255,82,82,.12);color:var(--red);border:1px solid rgba(255,82,82,.25);}
+.badge-warn{background:rgba(255,171,64,.12);color:var(--orange);border:1px solid rgba(255,171,64,.25);}
+.badge-muted{background:rgba(123,163,204,.1);color:var(--muted);border:1px solid var(--border);}
+.flag-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.flag{padding:3px 9px;border-radius:5px;font-size:11px;font-family:var(--mono);border:1px solid;font-weight:600;}
+.flag-on{background:rgba(255,82,82,.1);color:var(--red);border-color:rgba(255,82,82,.3);}
+.flag-off{background:rgba(0,230,118,.07);color:var(--green);border-color:rgba(0,230,118,.2);}
+
+footer{position:relative;z-index:10;border-top:1px solid var(--border);padding:11px 22px;background:#000d26;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:8px;}
+@media(max-width:920px){.grid2,.grid3{grid-template-columns:1fr;}.score-banner{grid-template-columns:auto 1fr;}.page-wrap.shifted{margin-left:0;}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar" class="sidebar pinned">
+    <div class="sb-top" style="padding-left:14px;">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;letter-spacing:.02em;margin-right:auto;">IP<span style="color:var(--accent);">Intel</span></span>
+        <button class="pin-btn on" id="pinBtn" onclick="togglePin()" title="Pin/Unpin">📌</button>
+    </div>
+    <div class="sb-section-label">Tools</div>
+    <nav class="sb-nav">
+        <a href="/" class="nav-item"><span class="nav-icon">🔍</span><span>IP Checker</span></a>
+        <a href="/url-decoder" class="nav-item"><span class="nav-icon">🔓</span><span>URL Decoder</span></a>
+        <a href="/safelink-remover" class="nav-item"><span class="nav-icon">🛡</span><span>SafeLink Remover</span></a>
+        <a href="/domain-age" class="nav-item"><span class="nav-icon">🌐</span><span>Domain Age Checker</span></a>
+        <a href="/email-header" class="nav-item active"><span class="nav-icon">📧</span><span>Email Header Analyzer</span></a>
+    </nav>
+    <div class="sb-footer"><div class="sb-ip-chip">Your IP: <span id="sidebarIP">—</span></div></div>
+</div>
+<div id="sbOverlay" class="sb-overlay" onclick="closeSidebar()"></div>
+<button class="sb-tab" id="sbTab" onclick="openSidebar()">☰</button>
+
+<!-- PAGE -->
+<div class="page-wrap shifted" id="pageWrap">
+
+    <header class="topbar">
+        <a href="/" class="topbar-logo">
+            <span class="logo-wrap">
+                <img class="logo-shield" src="{{ url_for('static', filename='logo.png') }}" alt="IPIntel logo">
+                
+            </span>
+            <div>
+                <div class="brand-text"><span style="color:#fff;">IP</span><span>Intel</span></div>
+                <div class="brand-status">Systems Operational</div>
+            </div>
+        </a>
+        <div class="topbar-right">
+            <div class="topbar-ip">Your IP: <span id="myIP">—</span></div>
+        </div>
+    </header>
+
+    <main class="main">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div class="page-tag">SOC TOOL</div>
+            <h1 class="page-title">Email Header <span>Analyzer</span></h1>
+            <p class="page-sub">Detect spoofing, verify SPF / DKIM / DMARC, trace routing hops, and analyze clickable IPs directly from this dashboard</p>
+        </div>
+
+        <!-- INPUT -->
+        <div class="input-section">
+            <label class="input-label">Raw Email Headers or .eml File</label>
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="dropZone">
+                <span class="drop-zone-icon">📧</span>
+                <span class="drop-zone-text">Drag & drop .eml / .msg / .txt file here</span>
+                <span class="drop-zone-hint">or paste headers directly below</span>
+            </div>
+            <input type="file" id="fileInput" accept=".eml,.msg,.txt" style="display:none">
+
+            <textarea id="headerInput" class="header-textarea" rows="9"
+                placeholder="Paste raw email headers here...
+
+Received: from mail.example.com ([1.2.3.4]) by mx.google.com ...
+From: sender@example.com
+To: you@gmail.com
+Subject: Test email
+Date: Mon, 10 May 2026 12:00:00 +0000
+Authentication-Results: mx.google.com; spf=pass; dkim=pass; dmarc=pass
+DKIM-Signature: v=1; a=rsa-sha256; d=example.com; ...
+
+Tip: Ctrl+Enter to analyze"></textarea>
+
+            <div class="input-actions">
+                <button class="btn btn-primary" id="analyzeBtn" onclick="doAnalyze()">🔍 Analyze Headers</button>
+                <button class="sample-btn" onclick="loadSample()">Load Phishing Sample</button>
+                <button class="clear-lnk" onclick="clearAll()">✕ Clear</button>
+                <span class="error-msg" id="errMsg"></span>
+            </div>
+        </div>
+
+        <!-- RESULTS DASHBOARD -->
+        <div class="dashboard" id="dashboard">
+
+            <!-- Score banner (simplified - auth details in Auth card below) -->
+            <div class="score-banner">
+                <div class="score-gauge">
+                    <svg width="72" height="72" viewBox="0 0 72 72">
+                        <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(0,51,128,.5)" stroke-width="6"/>
+                        <circle id="gaugeArc" cx="36" cy="36" r="30" fill="none" stroke="#00e676" stroke-width="6"
+                            stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5"
+                            style="transition:stroke-dashoffset .9s ease,stroke .5s ease"/>
+                    </svg>
+                    <div class="gauge-num" id="gaugeNum">0</div>
+                </div>
+                <div class="score-info">
+                    <h4>Spoof Probability Score</h4>
+                    <div class="verdict" id="verdictEl">—</div>
+                </div>
+            </div>
+
+            <!-- Signals -->
+            <div class="card" style="margin-bottom:14px;">
+                <div class="card-title">⚡ Detection Signals</div>
+                <div class="signal-list" id="signalList"></div>
+            </div>
+
+            <!-- Envelope (full width) -->
+            <div class="card" style="margin-bottom:14px;">
+                <div class="card-title">📨 Envelope</div>
+                    <div class="field"><span class="field-lbl">From</span><span class="field-val" id="eFrom">—</span></div>
+                    <div class="field"><span class="field-lbl">To</span><span class="field-val" id="eTo">—</span></div>
+                    <div class="field"><span class="field-lbl">Reply-To</span><span class="field-val" id="eReplyTo">—</span></div>
+                    <div class="field"><span class="field-lbl">Return-Path</span><span class="field-val" id="eReturnPath">—</span></div>
+                    <div class="field"><span class="field-lbl">Sender</span><span class="field-val" id="eSender">—</span></div>
+                    <div class="field"><span class="field-lbl">Subject</span><span class="field-val" id="eSubject">—</span></div>
+                    <div class="field"><span class="field-lbl">Date</span><span class="field-val" id="eDate">—</span></div>
+                    <div class="field"><span class="field-lbl">Message-ID</span><span class="field-val" id="eMsgId">—</span></div>
+            </div>
+
+            <!-- Row 2: Auth + Technical -->
+            <div class="grid2">
+                <div class="card">
+                    <div class="card-title">🔐 Authentication</div>
+                    <div class="auth-row" id="authRow"></div>
+                    <div id="dkimSigs" style="margin-top:10px;"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">⚙️ Technical</div>
+                    <div class="field"><span class="field-lbl">Originating IP</span><span class="field-val" id="tOrigIP">—</span></div>
+                    <div class="field"><span class="field-lbl">X-Mailer</span><span class="field-val" id="tMailer">—</span></div>
+                    <div class="field"><span class="field-lbl">X-Priority</span><span class="field-val" id="tPriority">—</span></div>
+                    <div class="field"><span class="field-lbl">X-Spam-Status</span><span class="field-val" id="tSpam">—</span></div>
+                    <div class="field"><span class="field-lbl">X-Spam-Score</span><span class="field-val" id="tSpamScore">—</span></div>
+                    <div class="field"><span class="field-lbl">MIME-Version</span><span class="field-val" id="tMime">—</span></div>
+                    <div class="field"><span class="field-lbl">Content-Type</span><span class="field-val" id="tContent">—</span></div>
+                    <div class="field"><span class="field-lbl">Hops</span><span class="field-val" id="tHops">—</span></div>
+                </div>
+            </div>
+
+            <!-- IPs found -->
+            <div class="card" id="ipCard" style="margin-bottom:14px;display:none;">
+                <div class="card-title">🌐 IPs Found — Click to Analyze</div>
+                <div id="ipChipList"></div>
+            </div>
+
+            <!-- Routing chain -->
+            <div class="card" style="margin-bottom:14px;">
+                <div class="card-title">🛤️ Mail Routing Chain</div>
+                <div style="overflow-x:auto;">
+                    <table class="hop-table">
+                        <thead><tr>
+                            <th>#</th><th>From Host</th><th>IP</th><th>Type</th>
+                            <th>rDNS</th><th>By Host</th><th>Timestamp</th>
+                        </tr></thead>
+                        <tbody id="hopBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- IP Analysis panel (inline, shown on chip click) -->
+            <div class="ip-panel" id="ipPanel">
+                <div class="ip-panel-hdr">
+                    <span class="ip-panel-title">🔍 IP Analysis: <span id="ipPanelAddr" style="color:var(--accent2);font-family:var(--mono);">—</span></span>
+                    <button class="ip-panel-close" onclick="document.getElementById('ipPanel').classList.remove('show')">×</button>
+                </div>
+                <div id="ipPanelBody"></div>
+            </div>
+
+        </div><!-- /dashboard -->
+    </main>
+
+    <footer>
+        <span>© 2026 IPIntel.tech — Email Header Analyzer</span>
+        <span>SPF · DKIM · DMARC · Routing · Spoof Detection</span>
+    </footer>
+</div><!-- /page-wrap -->
+
+<script>
+/* ── SIDEBAR ── */
+let pinned=true;
+function togglePin(){pinned=!pinned;applyPin();localStorage.setItem('sbPin',pinned);}
+function applyPin(){
+    const sb=document.getElementById('sidebar'),w=document.getElementById('pageWrap'),
+          btn=document.getElementById('pinBtn'),tab=document.getElementById('sbTab');
+    if(pinned){sb.classList.remove('hidden');sb.classList.add('pinned');w.classList.add('shifted');btn.classList.add('on');tab.classList.remove('vis');document.getElementById('sbOverlay').classList.remove('show');}
+    else{sb.classList.add('hidden');sb.classList.remove('pinned');w.classList.remove('shifted');btn.classList.remove('on');tab.classList.add('vis');}
+}
+function openSidebar(){document.getElementById('sidebar').classList.remove('hidden');if(!pinned)document.getElementById('sbOverlay').classList.add('show');}
+function closeSidebar(){if(!pinned){document.getElementById('sidebar').classList.add('hidden');document.getElementById('sbOverlay').classList.remove('show');}}
+window.addEventListener('DOMContentLoaded',()=>{const s=localStorage.getItem('sbPin');if(s!==null)pinned=s==='true';applyPin();});
+
+/* ── YOUR IP ── */
+
+
+/* ── FILE DROP ── */
+const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
+dz.addEventListener('click',()=>fi.click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{
+    e.preventDefault();dz.classList.remove('drag-over');
+    const f=e.dataTransfer.files[0]; if(f) readFile(f);
+});
+fi.addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);});
+function readFile(f){
+    const r=new FileReader();
+    r.onload=e=>{
+        let c=e.target.result;
+        const sep=c.includes('\r\n\r\n')?'\r\n\r\n':'\n\n';
+        document.getElementById('headerInput').value=c.includes(sep)?c.split(sep)[0]:c;
+    };
+    r.readAsText(f);
+}
+
+/* ── SAMPLE ── */
+function loadSample(){
+    document.getElementById('headerInput').value=`Received: from mail.phishing-host.net ([198.51.100.42]) by mx.google.com with ESMTP id x1 for <victim@gmail.com>; Mon, 10 May 2026 08:23:41 +0000
+Received: from localhost ([127.0.0.1]) by mail.phishing-host.net id y2; Mon, 10 May 2026 08:23:35 +0000
+Authentication-Results: mx.google.com; spf=fail (domain of noreply@paypal.com does not designate 198.51.100.42 as permitted sender) smtp.mailfrom=noreply@paypal.com; dkim=fail header.d=paypal.com; dmarc=fail action=reject header.from=paypal.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=phishing-host.net; s=mail; h=from:to:subject:date; bh=abc123=; b=FAKEDKIM==
+From: "PayPal Security" <noreply@paypal.com>
+To: victim@gmail.com
+Reply-To: collect@attacker-domain.ru
+Return-Path: <bounce@phishing-host.net>
+Subject: Urgent: Your Account Has Been Limited
+Date: Mon, 10 May 2026 08:23:30 +0000
+Message-ID: <fake.id@phishing-host.net>
+X-Mailer: PHPMailer 6.6.5
+X-Priority: 1
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8`;
+}
+
+/* ── CLEAR ── */
+function clearAll(){
+    document.getElementById('headerInput').value='';
+    document.getElementById('dashboard').style.display='none';
+    document.getElementById('errMsg').innerText='';
+    document.getElementById('ipPanel').classList.remove('show');
+}
+
+/* ── HELPERS ── */
+function st(id,val){const el=document.getElementById(id);if(el)el.innerText=val&&val.toString().trim()?val.toString().trim():'—';}
+function sh(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
+
+function scoreColor(s){
+    if(s>=70) return '#ff5252';
+    if(s>=40) return '#ffab40';
+    if(s>=15) return '#ffd740';
+    return '#00e676';
+}
+function authClass(v){
+    if(!v||v==='missing'||v==='none') return 'none';
+    if(v==='pass') return 'pass';
+    if(['fail','hardfail','permerror','reject'].includes(v)) return 'fail';
+    if(['softfail','neutral','quarantine'].includes(v)) return 'neutral';
+    return 'none';
+}
+function pillClass(v){
+    if(!v||v==='missing') return '';
+    if(v==='pass') return 'ok';
+    if(['fail','hardfail','permerror','reject'].includes(v)) return 'danger';
+    return 'warn';
+}
+
+/* ── ANALYZE ── */
+async function doAnalyze(){
+    const raw=document.getElementById('headerInput').value.trim();
+    const err=document.getElementById('errMsg');
+    const btn=document.getElementById('analyzeBtn');
+    err.innerText='';
+    if(!raw){err.innerText='⚠️ Paste email headers first';return;}
+
+    btn.innerHTML='<span class="spinner"></span> Analyzing…';
+    btn.disabled=true;
+
+    try{
+        const res=await fetch('/analyze-headers',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({headers:raw})
+        });
+        const data=await res.json();
+        if(data.error){err.innerText='❌ '+data.error;return;}
+        renderDashboard(data);
+    }catch(e){
+        err.innerText='❌ Network error — is the server running?';
+    }finally{
+        btn.innerHTML='🔍 Analyze Headers';
+        btn.disabled=false;
+    }
+}
+
+/* ── RENDER ── */
+function renderDashboard(d){
+    const dash=document.getElementById('dashboard');
+    dash.style.display='block';
+
+    /* score ring */
+    const score=d.spoof_score||0;
+    const arc=document.getElementById('gaugeArc');
+    arc.style.strokeDashoffset=188.5-(score/100)*188.5;
+    arc.style.stroke=scoreColor(score);
+    const gnum=document.getElementById('gaugeNum');
+    gnum.innerText=score; gnum.style.color=scoreColor(score);
+
+    const vEl=document.getElementById('verdictEl');
+    vEl.innerText=d.verdict||'—'; vEl.className='verdict '+(d.verdict_class||'');
+
+    /* auth pills removed - now only in Auth card below */
+    const auth=d.auth_results||{};
+
+    /* envelope */
+    st('eFrom',   d.from_raw);      st('eTo',       d.to_raw);
+    st('eReplyTo',d.reply_to_raw||'—'); st('eReturnPath',d.return_path_raw||'—');
+    st('eSender', d.sender_raw||'—');   st('eSubject',d.subject||'—');
+    st('eDate',   d.date_raw||'—');     st('eMsgId',  d.message_id||'—');
+
+    /* technical */
+    st('tOrigIP',    d.x_originating_ip||'—'); st('tMailer',   d.x_mailer||'—');
+    st('tPriority',  d.x_priority||'—');       st('tSpam',     d.x_spam_status||'—');
+    st('tSpamScore', d.x_spam_score||'—');     st('tMime',     d.mime_version||'—');
+    st('tContent',   d.content_type||'—');
+    st('tHops', (d.hop_count||0)+' hop'+(d.hop_count===1?'':'s'));
+
+    /* auth badges */
+    const ar=document.getElementById('authRow');
+    ar.innerHTML='';
+    ['spf','dkim','dmarc'].forEach(p=>{
+        const val=auth[p]||'missing';
+        ar.innerHTML+=`<div class="auth-badge ${authClass(val)}"><span class="proto">${p.toUpperCase()}</span><span class="res">${val}</span></div>`;
+    });
+
+    /* dkim sigs */
+    const ds=document.getElementById('dkimSigs');
+    const sigs=d.dkim_signatures||[];
+    if(sigs.length){
+        ds.innerHTML='<div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:7px;">DKIM Signatures</div>';
+        sigs.forEach(s=>{
+            ds.innerHTML+=`<div class="dkim-block"><div class="dkim-dom">${s.domain||'unknown'}</div><div class="dkim-meta">Selector: ${s.selector||'—'} | Algorithm: ${s.algorithm||'—'}</div></div>`;
+        });
+    } else {
+        ds.innerHTML='<div style="font-size:12px;color:var(--muted);margin-top:8px;">No DKIM-Signature header found</div>';
+    }
+
+    /* signals */
+    const sl=document.getElementById('signalList');
+    sl.innerHTML='';
+    (d.signals||[]).forEach(sig=>{
+        sl.innerHTML+=`<div class="signal ${sig.type}"><div class="sig-dot"></div><div><div class="sig-label">${sig.label}</div><div class="sig-detail">${sig.detail}</div></div></div>`;
+    });
+    if(!d.signals||!d.signals.length) sl.innerHTML='<div style="color:var(--muted);font-size:13px;">No signals detected</div>';
+
+    /* IPs */
+    const ips=d.all_ips||[];
+    const ipCard=document.getElementById('ipCard');
+    if(ips.length){
+        ipCard.style.display='block';
+        document.getElementById('ipChipList').innerHTML=
+            ips.map(ip=>`<span class="ip-chip" onclick="analyzeIP('${ip}')">${ip}</span>`).join('');
+    } else { ipCard.style.display='none'; }
+
+    /* hop table */
+    const tbody=document.getElementById('hopBody');
+    tbody.innerHTML='';
+    const hops=d.received_hops||[];
+    if(!hops.length){
+        tbody.innerHTML=`<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:16px;">No Received headers found</td></tr>`;
+    } else {
+        hops.forEach((h,i)=>{
+            const num=hops.length-i;
+            const ts=h.timestamp?new Date(h.timestamp).toLocaleString():(h.timestamp_raw||'—');
+            tbody.innerHTML+=`<tr>
+                <td class="hop-n">${num}</td>
+                <td class="hop-host">${h.from_host||'—'}</td>
+                <td class="hop-ip">${h.ip||'—'}</td>
+                <td><span class="ip-type ${h.ip_type||''}">${h.ip_type||'—'}</span></td>
+                <td class="hop-host">${h.rdns||'—'}</td>
+                <td class="hop-host">${h.by_host||'—'}</td>
+                <td class="hop-ts">${ts}</td>
+            </tr>`;
+        });
+    }
+
+    dash.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── IP CLICK ANALYSIS ── */
+async function analyzeIP(ip){
+    const panel=document.getElementById('ipPanel');
+    const body=document.getElementById('ipPanelBody');
+    document.getElementById('ipPanelAddr').innerText=ip;
+    panel.classList.add('show');
+    body.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">Fetching IP intelligence…</div>';
+
+    try{
+        const res=await fetch('/check_ip',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ip,check_vpn:false})
+        });
+        const data=await res.json();
+        if(data.error){body.innerHTML=`<div style="color:var(--red);padding:16px;">${data.error}</div>`;return;}
+
+        const score=data.risk_score||0;
+        const circ=150.8;
+        const offset=circ-(score/100)*circ;
+        const sc=score<20?'#00e676':score<60?'#ffab40':'#ff5252';
+        const vl=score<20?'SAFE':score<60?'SUSPICIOUS':'RISKY';
+        const vc=score<20?'badge-safe':score<60?'badge-warn':'badge-risk';
+
+        body.innerHTML=`
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;">
+                <div style="position:relative;width:42px;height:42px;flex-shrink:0;">
+                    <svg width="42" height="42" viewBox="0 0 42 42" style="transform:rotate(-90deg)">
+                        <circle cx="21" cy="21" r="17" fill="none" stroke="rgba(0,51,128,.5)" stroke-width="4"/>
+                        <circle cx="21" cy="21" r="17" fill="none" stroke="${sc}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${circ*0.75}" stroke-dashoffset="${offset*0.75}"/>
+                    </svg>
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;color:${sc};">${score}</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;">Abuse Score</div>
+                    <span class="badge-ok ${vc}" style="font-size:10px;padding:2px 7px;">${vl}</span>
+                </div>
+            </div>
+            <div style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.8;">
+                ISP: <span style="color:#fff;font-weight:400;">${data.isp||'N/A'}</span>, Country: <span style="color:#fff;font-weight:400;">${data.country||'N/A'}</span>, City: <span style="color:#fff;font-weight:400;">${data.city||'N/A'}</span>, Usage: <span style="color:#fff;font-weight:400;">${data.usage||'N/A'}</span>, Reports: <span style="color:#fff;font-weight:400;">${data.total_reports??0}</span>, TOR: <span class="badge-ok ${data.is_tor?'badge-risk':'badge-safe'}" style="font-size:9px;padding:2px 6px;">${data.is_tor?'YES':'NO'}</span>
+            </div>
+        </div>
+        ${data.vt?`
+        <div style="margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;">VirusTotal</span>
+                <span class="badge-ok ${data.vt.flagged_total===0?'badge-safe':data.vt.flagged_total<3?'badge-warn':'badge-risk'}">${data.vt.flagged_total===0?'CLEAN':data.vt.flagged_total<3?'SUSPICIOUS':'MALICIOUS'}</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">${data.vt.flagged_total} / ${data.vt.total} engines flagged</div>
+            ${data.vt.vendors&&data.vt.vendors.length?data.vt.vendors.map(v=>`<span style="background:rgba(255,82,82,.1);color:#ff8a80;border:1px solid rgba(255,82,82,.2);padding:2px 7px;border-radius:4px;font-size:11px;font-family:var(--mono);margin:2px;">${v}</span>`).join(''):'<span style="color:var(--green);font-size:12px;">No vendors flagged ✓</span>'}
+        </div>`:''}
+        <div style="margin-top:10px;text-align:center;">
+            <a href="/?ip=${ip}" style="font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none;border:1px solid rgba(0,185,241,.25);padding:6px 14px;border-radius:6px;background:rgba(0,185,241,.08);">Open Full IP Report →</a>
+        </div>`;
+
+        panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }catch(e){
+        body.innerHTML=`<div style="color:var(--red);padding:16px;">Error: ${e.message}</div>`;
+    }
+}
+
+/* ── KEYBOARD ── */
+document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('headerInput').addEventListener('keydown',e=>{
+        if(e.ctrlKey&&e.key==='Enter') doAnalyze();
+    });
+});
+
+/* Fetch user IP once on page load */
+if (!window.userIPFetched) {
+    window.userIPFetched = true;
+    fetch("https://api.ipify.org?format=json")
+        .then(r => r.json())
+        .then(d => {
+            const ip = d.ip;
+            document.getElementById('myIP')?.innerText && (document.getElementById('myIP').innerText = ip);
+            document.getElementById('sidebarIP')?.innerText && (document.getElementById('sidebarIP').innerText = ip);
+        })
+        .catch(() => {});
+}
+</script>
+</body>
+</html>
